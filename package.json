@@ -17,7 +17,9 @@
     "deploy": "./scripts/deploy.sh",
     "deploy:staging": "./scripts/deploy.sh staging",
     "deploy:production": "./scripts/deploy.sh production",
-    "monitor": "./scripts/monitor-deployment.sh"
+    "monitor": "./scripts/monitor-deployment.sh",
+    "verify-secrets": "./scripts/verify-secrets.sh",
+    "setup-secrets": "./scripts/add-secrets.sh"
   },
   "dependencies": {
     "@google-cloud/aiplatform": "^3.8.0",

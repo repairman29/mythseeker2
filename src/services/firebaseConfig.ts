@@ -4,16 +4,24 @@ import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
 
-// Firebase configuration for mythseekers-rpg project
+// Firebase configuration - values will be populated from Google Secret Manager
 const firebaseConfig = {
-  apiKey: process.env.VITE_FIREBASE_API_KEY || 'AIzaSyBDefault', // Replace with actual key
-  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN || 'mythseekers-rpg.firebaseapp.com',
-  projectId: process.env.VITE_FIREBASE_PROJECT_ID || 'mythseekers-rpg',
-  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET || 'mythseekers-rpg.appspot.com',
-  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '659018227506',
-  appId: process.env.VITE_FIREBASE_APP_ID || '1:659018227506:web:abcdef',
-  measurementId: process.env.VITE_FIREBASE_MEASUREMENT_ID || 'G-ABCDEF123'
+  apiKey: process.env.VITE_FIREBASE_API_KEY,
+  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.VITE_FIREBASE_APP_ID,
+  measurementId: process.env.VITE_FIREBASE_MEASUREMENT_ID
 };
+
+// Validate required configuration
+const requiredConfig = ['apiKey', 'authDomain', 'projectId', 'storageBucket', 'messagingSenderId', 'appId'];
+for (const key of requiredConfig) {
+  if (!firebaseConfig[key as keyof typeof firebaseConfig]) {
+    throw new Error(`Missing required Firebase configuration: ${key}`);
+  }
+}
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);

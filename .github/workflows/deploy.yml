@@ -41,19 +41,73 @@ jobs:
 
     - name: Fetch secrets from Secret Manager
       run: |
-        # Fetch OpenAI API key
+        # Fetch OpenAI API Key
         gcloud secrets versions access latest --secret="openai-api-key" > .openai_api_key
         echo "VITE_OPENAI_API_KEY=$(cat .openai_api_key)" >> .env.production
+        
+        # Fetch Firebase Configuration
+        gcloud secrets versions access latest --secret="firebase-api-key" > .firebase_api_key
+        echo "VITE_FIREBASE_API_KEY=$(cat .firebase_api_key)" >> .env.production
+        
+        gcloud secrets versions access latest --secret="firebase-auth-domain" > .firebase_auth_domain
+        echo "VITE_FIREBASE_AUTH_DOMAIN=$(cat .firebase_auth_domain)" >> .env.production
+        
+        gcloud secrets versions access latest --secret="firebase-project-id" > .firebase_project_id
+        echo "VITE_FIREBASE_PROJECT_ID=$(cat .firebase_project_id)" >> .env.production
+        
+        gcloud secrets versions access latest --secret="firebase-storage-bucket" > .firebase_storage_bucket
+        echo "VITE_FIREBASE_STORAGE_BUCKET=$(cat .firebase_storage_bucket)" >> .env.production
+        
+        gcloud secrets versions access latest --secret="firebase-messaging-sender-id" > .firebase_messaging_sender_id
+        echo "VITE_FIREBASE_MESSAGING_SENDER_ID=$(cat .firebase_messaging_sender_id)" >> .env.production
+        
+        gcloud secrets versions access latest --secret="firebase-app-id" > .firebase_app_id
+        echo "VITE_FIREBASE_APP_ID=$(cat .firebase_app_id)" >> .env.production
+        
+        # Fetch Google Cloud Configuration
+        echo "VITE_GOOGLE_CLOUD_PROJECT_ID=mythseekers-rpg" >> .env.production
+        echo "VITE_GOOGLE_CLOUD_LOCATION=us-central1" >> .env.production
+        
+        # Fetch GCP Access Token if available
+        if gcloud secrets versions access latest --secret="gcp-access-token" > .gcp_access_token 2>/dev/null; then
+          echo "VITE_GCP_ACCESS_TOKEN=$(cat .gcp_access_token)" >> .env.production
+        fi
+        
+        # Fetch Vertex AI API Key if available
+        if gcloud secrets versions access latest --secret="vertex-ai-api-key" > .vertex_ai_api_key 2>/dev/null; then
+          echo "VITE_VERTEX_AI_API_KEY=$(cat .vertex_ai_api_key)" >> .env.production
+        fi
         
         # Fetch service account key if available
         if gcloud secrets versions access latest --secret="service-account-key" > service-account.json 2>/dev/null; then
           echo "GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/service-account.json" >> .env.production
         fi
+        
+        # Add application configuration
+        echo "VITE_APP_NAME=MythSeeker" >> .env.production
+        echo "VITE_APP_VERSION=2.0.0" >> .env.production
+        echo "VITE_APP_ENVIRONMENT=production" >> .env.production
+        echo "VITE_APP_URL=https://mythseekers-rpg.web.app" >> .env.production
+        
+        # Add feature flags
+        echo "VITE_ENABLE_AI_FEATURES=true" >> .env.production
+        echo "VITE_ENABLE_REAL_TIME=true" >> .env.production
+        echo "VITE_ENABLE_ANALYTICS=true" >> .env.production
+        echo "VITE_ENABLE_DEBUG_MODE=false" >> .env.production
+        
+        # Add performance configuration
+        echo "VITE_MAX_MESSAGE_HISTORY=100" >> .env.production
+        echo "VITE_DICE_ROLL_HISTORY_LIMIT=50" >> .env.production
+        echo "VITE_CAMPAIGN_CACHE_DURATION=300000" >> .env.production
 
     - name: Build application
       run: npm run build
       env:
         NODE_OPTIONS: "--max-old-space-size=8192"
+
+    - name: Clean up temporary files
+      run: |
+        rm -f .openai_api_key .firebase_api_key .firebase_auth_domain .firebase_project_id .firebase_storage_bucket .firebase_messaging_sender_id .firebase_app_id .gcp_access_token .vertex_ai_api_key
 
     - name: Deploy to Firebase
       uses: FirebaseExtended/action-hosting-deploy@v0

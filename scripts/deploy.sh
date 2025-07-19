@@ -5,31 +5,8 @@
 
 set -e  # Exit on any error
 
-# --- Secret Manager Integration ---
-# Fetch secrets from Google Secret Manager and inject into .env.production
-
-# Clean previous env and secret files
-rm -f .env.production service-account.json .openai_api_key
-
-# Fetch OpenAI API Key
-if gcloud secrets describe openai-api-key &> /dev/null; then
-  echo "🔑 Fetching OpenAI API Key from Secret Manager..."
-  gcloud secrets versions access latest --secret="openai-api-key" > .openai_api_key
-  echo "VITE_OPENAI_API_KEY=$(cat .openai_api_key)" >> .env.production
-else
-  echo "⚠️  openai-api-key not found in Secret Manager. Skipping."
-fi
-
-# Fetch Service Account JSON
-if gcloud secrets describe service-account-key &> /dev/null; then
-  echo "🔑 Fetching Service Account JSON from Secret Manager..."
-  gcloud secrets versions access latest --secret="service-account-key" > service-account.json
-  echo "GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/service-account.json" >> .env.production
-else
-  echo "⚠️  service-account-key not found in Secret Manager. Skipping."
-fi
-
-# (Add more secrets here as needed)
+echo "🚀 MythSeeker Production Deployment"
+echo "==================================="
 
 # Check if we're in the right directory
 if [ ! -f "package.json" ]; then
@@ -37,30 +14,80 @@ if [ ! -f "package.json" ]; then
     exit 1
 fi
 
-# Check if Firebase CLI is installed
-if ! command -v firebase &> /dev/null; then
-    echo "❌ Error: Firebase CLI not found. Please install it with 'npm install -g firebase-tools'"
-    exit 1
+echo "🔑 Fetching secrets from Google Secret Manager..."
+
+# Fetch OpenAI API Key
+echo "📥 Fetching OpenAI API Key..."
+gcloud secrets versions access latest --secret="openai-api-key" > .openai_api_key
+echo "VITE_OPENAI_API_KEY=$(cat .openai_api_key)" >> .env.production
+
+# Fetch Firebase Configuration
+echo "📥 Fetching Firebase configuration..."
+gcloud secrets versions access latest --secret="firebase-api-key" > .firebase_api_key
+echo "VITE_FIREBASE_API_KEY=$(cat .firebase_api_key)" >> .env.production
+
+gcloud secrets versions access latest --secret="firebase-auth-domain" > .firebase_auth_domain
+echo "VITE_FIREBASE_AUTH_DOMAIN=$(cat .firebase_auth_domain)" >> .env.production
+
+gcloud secrets versions access latest --secret="firebase-project-id" > .firebase_project_id
+echo "VITE_FIREBASE_PROJECT_ID=$(cat .firebase_project_id)" >> .env.production
+
+gcloud secrets versions access latest --secret="firebase-storage-bucket" > .firebase_storage_bucket
+echo "VITE_FIREBASE_STORAGE_BUCKET=$(cat .firebase_storage_bucket)" >> .env.production
+
+gcloud secrets versions access latest --secret="firebase-messaging-sender-id" > .firebase_messaging_sender_id
+echo "VITE_FIREBASE_MESSAGING_SENDER_ID=$(cat .firebase_messaging_sender_id)" >> .env.production
+
+gcloud secrets versions access latest --secret="firebase-app-id" > .firebase_app_id
+echo "VITE_FIREBASE_APP_ID=$(cat .firebase_app_id)" >> .env.production
+
+# Fetch Google Cloud Configuration
+echo "📥 Fetching Google Cloud configuration..."
+echo "VITE_GOOGLE_CLOUD_PROJECT_ID=mythseekers-rpg" >> .env.production
+echo "VITE_GOOGLE_CLOUD_LOCATION=us-central1" >> .env.production
+
+# Fetch GCP Access Token if available
+if gcloud secrets versions access latest --secret="gcp-access-token" > .gcp_access_token 2>/dev/null; then
+    echo "VITE_GCP_ACCESS_TOKEN=$(cat .gcp_access_token)" >> .env.production
+else
+    echo "⚠️  gcp-access-token not found in Secret Manager. Skipping."
 fi
 
-# Check if user is logged in to Firebase
-if ! firebase projects:list &> /dev/null; then
-    echo "❌ Error: Not logged in to Firebase. Please run 'firebase login' first."
-    exit 1
+# Fetch Vertex AI API Key if available
+if gcloud secrets versions access latest --secret="vertex-ai-api-key" > .vertex_ai_api_key 2>/dev/null; then
+    echo "VITE_VERTEX_AI_API_KEY=$(cat .vertex_ai_api_key)" >> .env.production
+else
+    echo "⚠️  vertex-ai-api-key not found in Secret Manager. Skipping."
 fi
+
+# Fetch service account key if available
+if gcloud secrets versions access latest --secret="service-account-key" > service-account.json 2>/dev/null; then
+    echo "GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/service-account.json" >> .env.production
+else
+    echo "⚠️  service-account-key not found in Secret Manager. Skipping."
+fi
+
+# Add application configuration
+echo "📝 Adding application configuration..."
+echo "VITE_APP_NAME=MythSeeker" >> .env.production
+echo "VITE_APP_VERSION=2.0.0" >> .env.production
+echo "VITE_APP_ENVIRONMENT=production" >> .env.production
+echo "VITE_APP_URL=https://mythseekers-rpg.web.app" >> .env.production
+
+# Add feature flags
+echo "VITE_ENABLE_AI_FEATURES=true" >> .env.production
+echo "VITE_ENABLE_REAL_TIME=true" >> .env.production
+echo "VITE_ENABLE_ANALYTICS=true" >> .env.production
+echo "VITE_ENABLE_DEBUG_MODE=false" >> .env.production
+
+# Add performance configuration
+echo "VITE_MAX_MESSAGE_HISTORY=100" >> .env.production
+echo "VITE_DICE_ROLL_HISTORY_LIMIT=50" >> .env.production
+echo "VITE_CAMPAIGN_CACHE_DURATION=300000" >> .env.production
 
 echo "📦 Building application..."
 
-# Clean previous build
-rm -rf dist
-
-# Install dependencies if needed
-if [ ! -d "node_modules" ]; then
-    echo "📥 Installing dependencies..."
-    npm install
-fi
-
-# Run type check
+# Run type checking
 echo "🔍 Running type check..."
 npm run type-check
 
@@ -72,17 +99,13 @@ npm run lint
 echo "🏗️ Building for production..."
 npm run build
 
-# Check if build was successful
-if [ ! -d "dist" ]; then
-    echo "❌ Error: Build failed. dist directory not found."
-    exit 1
-fi
-
-echo "✅ Build completed successfully!"
+# Clean up temporary files
+echo "🧹 Cleaning up temporary files..."
+rm -f .openai_api_key .firebase_api_key .firebase_auth_domain .firebase_project_id .firebase_storage_bucket .firebase_messaging_sender_id .firebase_app_id .gcp_access_token .vertex_ai_api_key
 
 # Deploy to Firebase
-echo "🚀 Deploying to Firebase..."
+echo "🚀 Deploying to Firebase Hosting..."
 firebase deploy --only hosting
 
-echo "🎉 Deployment completed successfully!"
-echo "🌐 Your application is now live at: https://your-project-id.web.app" 
+echo "✅ Deployment completed successfully!"
+echo "🌐 Your app is live at: https://mythseekers-rpg.web.app" 
