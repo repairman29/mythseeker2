@@ -16,7 +16,8 @@
     "test:all": "npm run type-check && npm run lint && npm run test:performance",
     "deploy": "./scripts/deploy.sh",
     "deploy:staging": "./scripts/deploy.sh staging",
-    "deploy:production": "./scripts/deploy.sh production"
+    "deploy:production": "./scripts/deploy.sh production",
+    "monitor": "./scripts/monitor-deployment.sh"
   },
   "dependencies": {
     "@google-cloud/aiplatform": "^3.8.0",
