@@ -1,0 +1,48 @@
+type User @table {
+  username: String!
+  email: String!
+  createdAt: Timestamp!
+  displayName: String
+}
+
+type GameSystem @table {
+  name: String!
+  description: String
+  rulesConfig: String # Storing JSON as string
+  official: Boolean
+}
+
+type Campaign @table {
+  name: String!
+  createdAt: Timestamp!
+  lastPlayedAt: Timestamp!
+  status: String! # Represents enum: Active, Paused, Completed
+  visibility: String! # Represents enum: Public, Private, InviteOnly
+  gameSystem: GameSystem! # Reference to GameSystem
+  createdBy: User! # Reference to User who created the campaign
+  description: String
+  aiDmPersona: String
+  humanDm: User # Optional reference to a human DM user
+  inviteCode: String
+}
+
+type Character @table {
+  name: String!
+  characterSheet: String! # Storing JSON as string for stats, inventory, etc.
+  isPlayerCharacter: Boolean!
+  createdAt: Timestamp!
+  lastUpdated: Timestamp!
+  campaign: Campaign! # Reference to the Campaign this character belongs to
+  player: User # Optional reference to the User if this is a player character
+  personaDescription: String # For AI NPCs or PC backstory
+}
+
+type CampaignMessage @table {
+  content: String!
+  timestamp: Timestamp!
+  campaign: Campaign! # Reference to the Campaign the message belongs to
+  senderRole: String! # Represents enum: PLAYER, AI_NPC, AI_DM, SYSTEM
+  senderCharacter: Character # Optional reference to the Character who sent the message
+  messageType: String # Optional, represents enum: NARRATIVE, DIALOGUE, ACTION, ROLL, SYSTEM_EVENT
+  rollResult: String # Storing JSON as string for dice roll details
+}
