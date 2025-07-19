@@ -1,0 +1,36 @@
+#!/bin/bash
+
+echo "🔑 Firebase Configuration Helper"
+echo "================================"
+echo ""
+
+echo "📋 To get your Firebase API key, follow these steps:"
+echo ""
+echo "1. Go to Firebase Console:"
+echo "   https://console.firebase.google.com/project/mythseekers-rpg/settings/general"
+echo ""
+echo "2. In the 'General' tab, scroll down to 'Your apps'"
+echo ""
+echo "3. Click on the web app (mythseekers-rpg-web)"
+echo ""
+echo "4. Copy the 'Web API Key' (starts with 'AIzaSy...')"
+echo ""
+echo "5. Add it to Secret Manager:"
+echo "   echo 'YOUR_API_KEY' | gcloud secrets versions add firebase-api-key --data-file=-"
+echo ""
+
+echo "🔍 Current Firebase Project Info:"
+echo "Project ID: mythseekers-rpg"
+echo "Project Number: 659018227506"
+echo "Web App ID: 1:659018227506:web:82425e7adaf80c2e3c412b"
+echo ""
+
+echo "📝 Alternative: Get config from Firebase CLI"
+echo "Run: firebase apps:sdkconfig web"
+echo "This will show the full configuration including the API key."
+echo ""
+
+echo "✅ Once you have the API key, run:"
+echo "   npm run verify-secrets"
+echo "   npm run deploy"
+echo "" 
