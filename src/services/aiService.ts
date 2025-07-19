@@ -32,8 +32,6 @@ export class AIService {
     userInput: string,
     aiPersonality: string = 'dramatic'
   ): Promise<string> {
-    const startTime = Date.now();
-
     try {
       // Try Vertex AI first (primary AI)
       const vertexResponse = await this.tryVertexAI(context, userInput, aiPersonality);
@@ -255,7 +253,7 @@ RESPONSE REQUIREMENTS:
     return guidelines[personality as keyof typeof guidelines] || guidelines.helpful;
   }
 
-  private enhanceWithPersonality(response: string, personality: string, context: AIContext): string {
+  private enhanceWithPersonality(response: string, personality: string, _context: AIContext): string {
     const enhancements = {
       dramatic: [
         "The very fabric of destiny trembles!",
@@ -343,7 +341,7 @@ RESPONSE REQUIREMENTS:
     return this.enhanceWithPersonality(response, personality, context);
   }
 
-  async generateCombatNarrative(action: string, result: number, target?: string): Promise<string> {
+  async generateCombatNarrative(_action: string, result: number, _target?: string): Promise<string> {
     const narratives = {
       critical: [
         "CRITICAL SUCCESS! Your perfect execution leaves even seasoned warriors in awe!",

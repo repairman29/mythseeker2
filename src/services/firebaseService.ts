@@ -5,14 +5,12 @@ import {
   getDocs,
   addDoc,
   updateDoc,
-  deleteDoc,
   query,
   where,
   orderBy,
   limit,
   onSnapshot,
-  serverTimestamp,
-  Timestamp
+  serverTimestamp
 } from 'firebase/firestore';
 import {
   signInWithPopup,
@@ -22,7 +20,7 @@ import {
   User as FirebaseUser
 } from 'firebase/auth';
 import { auth, db } from './firebaseConfig';
-import { User, Character, Campaign, GameMessage, Achievement } from '../types';
+import { User, Character, Campaign, GameMessage } from '../types';
 
 export class FirebaseService {
   private currentUser: User | null = null;
