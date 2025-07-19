@@ -1,0 +1,84 @@
+name: Deploy to Firebase Hosting
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run type check
+      run: npm run type-check
+
+    - name: Run linting
+      run: npm run lint
+
+    - name: Setup Google Cloud CLI
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        project_id: mythseekers-rpg
+        service_account_key: ${{ secrets.GCP_SA_KEY }}
+        export_default_credentials: true
+
+    - name: Fetch secrets from Secret Manager
+      run: |
+        # Fetch OpenAI API key
+        gcloud secrets versions access latest --secret="openai-api-key" > .openai_api_key
+        echo "VITE_OPENAI_API_KEY=$(cat .openai_api_key)" >> .env.production
+        
+        # Fetch service account key if available
+        if gcloud secrets versions access latest --secret="service-account-key" > service-account.json 2>/dev/null; then
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/service-account.json" >> .env.production
+        fi
+
+    - name: Build application
+      run: npm run build
+      env:
+        NODE_OPTIONS: "--max-old-space-size=8192"
+
+    - name: Deploy to Firebase
+      uses: FirebaseExtended/action-hosting-deploy@v0
+      with:
+        repoToken: '${{ secrets.GITHUB_TOKEN }}'
+        firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_MYTHSEEKERS_RPG }}'
+        projectId: mythseekers-rpg
+        channelId: live
+
+  test-performance:
+    runs-on: ubuntu-latest
+    needs: build-and-deploy
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run performance tests
+      run: npm run test:performance 

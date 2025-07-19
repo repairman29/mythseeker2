@@ -8,4 +8,7 @@ export * from './dice';
 export * from './character';
 
 // Game Components
-export * from './game'; 
+export * from './game';
+
+// Campaign Components
+export * from './campaign'; 

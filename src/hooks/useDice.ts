@@ -135,7 +135,7 @@ export const useDice = (): UseDiceReturn => {
     const criticalHits = rollHistory.filter(roll => roll.critical).length;
     
     return { totalRolls, averageRoll, criticalHits };
-  }, [state.rollHistory]);
+  }, [state]);
 
   return {
     ...state,

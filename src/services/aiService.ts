@@ -1,11 +1,20 @@
-import { Character, Campaign, GameMessage, Quest, NPC } from '../types';
+import { Campaign, GameMessage, Character, NPC } from '../types';
 
 // AI Service interfaces
+interface WorldState {
+  currentLocation: string;
+  timeOfDay: string;
+  weather: string;
+  season: string;
+  activeQuests?: string;
+  npcs?: NPC[];
+}
+
 interface AIContext {
   campaign: Campaign;
   recentMessages: GameMessage[];
   characters: Character[];
-  worldState: any;
+  worldState: WorldState;
 }
 
 interface AIResponse {
@@ -17,7 +26,7 @@ interface AIResponse {
 
 export class AIService {
   private conversationHistory: Map<string, GameMessage[]> = new Map();
-  private contextMemory: Map<string, any> = new Map();
+  private contextMemory: Map<string, unknown> = new Map();
   private vertexAiEndpoint: string;
   private openAiEndpoint: string;
 
@@ -190,21 +199,22 @@ export class AIService {
   }
 
   private buildAdvancedSystemPrompt(context: AIContext, personality: string): string {
-    const { campaign, recentMessages, characters, worldState } = context;
+    const { campaign, characters, worldState } = context;
     
-    const recentContext = recentMessages
+    // Get recent context (last 5 messages)
+    const recentContext = context.recentMessages
       .slice(-5)
-      .map(msg => `${msg.senderName}: ${msg.content}`)
+      .map(msg => `${msg.senderId}: ${msg.content}`)
       .join('\n');
 
-    const activeQuests = worldState.activeQuests
-      .map((quest: Quest) => `- ${quest.title}: ${quest.description}`)
-      .join('\n');
+    // Get active quests
+    const activeQuests = worldState.activeQuests || 'No active quests';
 
+    // Get notable NPCs
     const npcs = worldState.npcs
-      .slice(0, 3)
+      ?.slice(0, 3)
       .map((npc: NPC) => `- ${npc.name} (${npc.race}): ${npc.description}`)
-      .join('\n');
+      .join('\n') || 'No notable NPCs present';
 
     return `You are an expert Dungeon Master running "${campaign.name}" - a ${campaign.theme} campaign.
 
@@ -218,10 +228,10 @@ PARTY COMPOSITION:
 ${characters.map(char => `${char.name} (Level ${char.level} ${char.race} ${char.class} - HP: ${char.hitPoints.current}/${char.hitPoints.maximum})`).join('\n')}
 
 ACTIVE QUESTS:
-${activeQuests || 'No active quests'}
+${activeQuests}
 
 NOTABLE NPCs:
-${npcs || 'No notable NPCs present'}
+${npcs}
 
 RECENT CONVERSATION:
 ${recentContext}
@@ -325,19 +335,20 @@ RESPONSE REQUIREMENTS:
     };
 
     // Determine response category based on input keywords
-    let responses: string[] = responseCategories.exploration; // default
-    
-    if (/attack|fight|combat|battle|strike|hit|sword|weapon/.test(input)) {
-      responses = responseCategories.combat;
-    } else if (/talk|speak|persuade|convince|diplomacy|negotiate|social/.test(input)) {
-      responses = responseCategories.social;
-    } else if (/cast|spell|magic|arcane|enchant|summon/.test(input)) {
-      responses = responseCategories.magic;
-    } else if (/search|investigate|examine|study|look|inspect|clue/.test(input)) {
-      responses = responseCategories.investigation;
-    }
+    const responses: string[] = (() => {
+      if (/attack|fight|combat|battle|strike|hit|sword|weapon/.test(input)) {
+        return responseCategories.combat;
+      } else if (/talk|speak|persuade|convince|diplomacy|negotiate|social/.test(input)) {
+        return responseCategories.social;
+      } else if (/cast|spell|magic|arcane|enchant|summon/.test(input)) {
+        return responseCategories.magic;
+      } else if (/search|investigate|examine|study|look|inspect|clue/.test(input)) {
+        return responseCategories.investigation;
+      }
+      return responseCategories.exploration; // default
+    })();
 
-    let response = responses[Math.floor(Math.random() * responses.length)];
+    const response = responses[Math.floor(Math.random() * responses.length)];
     return this.enhanceWithPersonality(response, personality, context);
   }
 
@@ -372,12 +383,12 @@ RESPONSE REQUIREMENTS:
   }
 
   // Context memory management
-  updateContextMemory(campaignId: string, key: string, value: any): void {
+  updateContextMemory(campaignId: string, key: string, value: unknown): void {
     const contextKey = `${campaignId}:${key}`;
     this.contextMemory.set(contextKey, value);
   }
 
-  getContextMemory(campaignId: string, key: string): any {
+  getContextMemory(campaignId: string, key: string): unknown {
     const contextKey = `${campaignId}:${key}`;
     return this.contextMemory.get(contextKey);
   }

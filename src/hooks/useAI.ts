@@ -1,17 +1,10 @@
 import { useState, useCallback } from 'react';
 import { AIService } from '../services';
-import { Campaign, GameMessage, Character } from '../types';
+import { GameMessage } from '../types';
 
 const aiService = new AIService();
 
 // AI Service interfaces (matching AIService)
-interface AIContext {
-  campaign: Campaign;
-  recentMessages: GameMessage[];
-  characters: Character[];
-  worldState: any;
-}
-
 interface AIResponse {
   content: string;
   model: string;
@@ -27,12 +20,12 @@ interface AIState {
 
 interface UseAIReturn extends AIState {
   // Core AI interactions
-  generateResponse: (context: AIContext, userInput: string, personality?: string) => Promise<string | null>;
+  generateResponse: (context: Parameters<AIService['generateResponse']>[0], userInput: string, personality?: string) => Promise<string | null>;
   generateCombatNarrative: (action: string, result: number, target?: string) => Promise<string | null>;
   
   // Context management
-  updateContextMemory: (campaignId: string, key: string, value: any) => void;
-  getContextMemory: (campaignId: string, key: string) => any;
+  updateContextMemory: (campaignId: string, key: string, value: unknown) => void;
+  getContextMemory: (campaignId: string, key: string) => unknown;
   addToHistory: (campaignId: string, message: GameMessage) => void;
   getConversationHistory: (campaignId: string) => GameMessage[];
   
@@ -61,7 +54,7 @@ export const useAI = (): UseAIReturn => {
   }, []);
 
   // Core AI interactions
-  const generateResponse = useCallback(async (context: AIContext, userInput: string, personality: string = 'dramatic'): Promise<string | null> => {
+  const generateResponse = useCallback(async (context: Parameters<AIService['generateResponse']>[0], userInput: string, personality: string = 'dramatic'): Promise<string | null> => {
     setLoading(true);
     setError(null);
     
@@ -94,7 +87,7 @@ export const useAI = (): UseAIReturn => {
   }, [setLoading, setError]);
 
   // Context management
-  const updateContextMemory = useCallback((campaignId: string, key: string, value: any) => {
+  const updateContextMemory = useCallback((campaignId: string, key: string, value: unknown) => {
     aiService.updateContextMemory(campaignId, key, value);
   }, []);
 
