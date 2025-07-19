@@ -34,8 +34,8 @@ export const db = getFirestore(app);
 export const functions = getFunctions(app);
 export const storage = getStorage(app);
 
-// Connect to emulators in development
-if (process.env.NODE_ENV === 'development') {
+// Connect to emulators in development (only if explicitly enabled)
+if (process.env.NODE_ENV === 'development' && process.env.VITE_USE_EMULATORS === 'true') {
   const hostname = 'localhost';
   
   // Connect to emulators (will silently fail if already connected)
