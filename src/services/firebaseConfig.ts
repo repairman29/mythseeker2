@@ -18,9 +18,13 @@ const firebaseConfig = {
 // Debug: Log the API key being used (only in development)
 if (import.meta.env.DEV) {
   console.log('🔧 Firebase Config Debug:');
-  console.log('API Key:', import.meta.env.VITE_FIREBASE_API_KEY ? '✅ Loaded' : '❌ Using fallback');
-  console.log('Auth Domain:', import.meta.env.VITE_FIREBASE_AUTH_DOMAIN);
-  console.log('Project ID:', import.meta.env.VITE_FIREBASE_PROJECT_ID);
+  console.log('Environment Variables:');
+  console.log('VITE_FIREBASE_API_KEY:', import.meta.env.VITE_FIREBASE_API_KEY ? '✅ Set' : '❌ Not set');
+  console.log('VITE_FIREBASE_AUTH_DOMAIN:', import.meta.env.VITE_FIREBASE_AUTH_DOMAIN ? '✅ Set' : '❌ Not set');
+  console.log('VITE_FIREBASE_PROJECT_ID:', import.meta.env.VITE_FIREBASE_PROJECT_ID ? '✅ Set' : '❌ Not set');
+  console.log('API Key being used:', firebaseConfig.apiKey.substring(0, 10) + '...');
+  console.log('Auth Domain being used:', firebaseConfig.authDomain);
+  console.log('Project ID being used:', firebaseConfig.projectId);
   console.log('Full Config:', {
     apiKey: firebaseConfig.apiKey.substring(0, 10) + '...',
     authDomain: firebaseConfig.authDomain,

@@ -38,6 +38,10 @@ export class FirebaseService {
     return timestamp.toDate();
   }
 
+  private generateId(): string {
+    return Math.random().toString(36).substring(2) + Date.now().toString(36);
+  }
+
   constructor() {
     console.log('🔧 FirebaseService: Initializing...');
     // Don't set up the listener here - wait for first subscription
@@ -621,53 +625,93 @@ export class FirebaseService {
   }
 
   // Message methods
-  async sendMessage(messageData: Partial<GameMessage>): Promise<GameMessage> {
-    if (!this.currentUser) throw new Error('User not authenticated');
+  async sendMessage(message: Partial<GameMessage>): Promise<string> {
+    console.log('🔧 sendMessage: Starting message send...');
+    console.log('🔧 sendMessage: Current user:', this.currentUser?.id);
+    console.log('🔧 sendMessage: Campaign ID:', message.campaignId);
+    
+    if (!this.currentUser) {
+      throw new Error('User not authenticated');
+    }
+
+    // Check if user is a member of the campaign
+    const isMember = await this.isCampaignMember(message.campaignId!);
+    console.log('🔧 sendMessage: User is campaign member:', isMember);
+    
+    if (!isMember) {
+      throw new Error('User is not a member of this campaign');
+    }
+
+    const messageData = {
+      ...message,
+      senderId: this.currentUser.id,
+      senderName: this.currentUser.displayName || this.currentUser.email || 'Unknown User',
+      timestamp: message.timestamp || new Date(),
+      id: message.id || this.generateId()
+    };
+
+    console.log('🔧 sendMessage: Message data prepared:', messageData);
+    console.log('🔧 sendMessage: Attempting to add document to Firestore...');
 
     try {
-      console.log('🔧 sendMessage: Starting message send...');
-      console.log('🔧 sendMessage: Current user:', this.currentUser.id);
-      console.log('🔧 sendMessage: Campaign ID:', messageData.campaignId);
-      
-      // Check if user is a member of the campaign
-      const isMember = await this.isCampaignMember(messageData.campaignId!);
-      console.log('🔧 sendMessage: User is campaign member:', isMember);
-      
-      const messagesRef = collection(db, 'messages');
-      
-      // Ensure all required fields are properly set and no undefined values
-      const message: Omit<GameMessage, 'id'> = {
-        campaignId: messageData.campaignId!,
-        senderId: messageData.senderId || this.currentUser.id,
-        senderName: messageData.senderName || this.currentUser.displayName,
-        type: messageData.type || 'player',
-        content: messageData.content!,
-        timestamp: new Date(),
-        isSecret: messageData.isSecret || false, // Ensure boolean value
-        targetUsers: messageData.targetUsers || [], // Ensure array
-        metadata: messageData.metadata || {} // Ensure object
-      };
-
-      console.log('🔧 sendMessage: Message data prepared:', message);
-
-      // Remove any undefined values before sending to Firestore
-      const cleanMessage = Object.fromEntries(
-        Object.entries(message).filter(([_, value]) => value !== undefined)
-      );
-
-      console.log('🔧 sendMessage: Attempting to add document to Firestore...');
-      const docRef = await addDoc(messagesRef, {
-        ...cleanMessage,
-        timestamp: serverTimestamp()
-      });
-
+      const docRef = await addDoc(collection(db, 'campaigns', message.campaignId!, 'messages'), messageData);
       console.log('🔧 sendMessage: Message sent successfully with ID:', docRef.id);
-      return { ...message, id: docRef.id };
+      return docRef.id;
     } catch (error) {
       console.error('🔧 sendMessage: Error details:', error);
       console.error('🔧 sendMessage: Error code:', (error as any).code);
       console.error('🔧 sendMessage: Error message:', (error as any).message);
       throw new Error('Failed to send message');
+    }
+  }
+
+  async sendAIMessage(campaignId: string, content: string, aiContext?: any): Promise<string> {
+    console.log('🔧 sendAIMessage: Starting AI message send...');
+    console.log('🔧 sendAIMessage: Current user:', this.currentUser?.id);
+    console.log('🔧 sendAIMessage: Campaign ID:', campaignId);
+    
+    if (!this.currentUser) {
+      throw new Error('User not authenticated');
+    }
+
+    // Check if user is a member of the campaign
+    const isMember = await this.isCampaignMember(campaignId);
+    console.log('🔧 sendAIMessage: User is campaign member:', isMember);
+    
+    if (!isMember) {
+      throw new Error('User is not a member of this campaign');
+    }
+
+    const messageData = {
+      campaignId,
+      senderId: this.currentUser.id, // Use current user's ID for permissions
+      senderName: 'Dungeon Master', // But display as DM
+      content,
+      timestamp: new Date(),
+      type: 'dm',
+      id: this.generateId(),
+      metadata: {
+        aiContext: {
+          model: aiContext?.model || 'gemini-pro',
+          responseTime: Date.now(),
+          confidence: aiContext?.confidence || 0.95,
+          isAI: true // Mark this as an AI message
+        }
+      }
+    };
+
+    console.log('🔧 sendAIMessage: AI message data prepared:', messageData);
+    console.log('🔧 sendAIMessage: Attempting to add AI message to Firestore...');
+
+    try {
+      const docRef = await addDoc(collection(db, 'campaigns', campaignId, 'messages'), messageData);
+      console.log('🔧 sendAIMessage: AI message sent successfully with ID:', docRef.id);
+      return docRef.id;
+    } catch (error) {
+      console.error('🔧 sendAIMessage: Error details:', error);
+      console.error('🔧 sendAIMessage: Error code:', (error as any).code);
+      console.error('🔧 sendAIMessage: Error message:', (error as any).message);
+      throw new Error('Failed to send AI message');
     }
   }
 
@@ -678,10 +722,9 @@ export class FirebaseService {
     }
 
     try {
-      const messagesRef = collection(db, 'messages');
+      const messagesRef = collection(db, 'campaigns', campaignId, 'messages');
       const q = query(
         messagesRef,
-        where('campaignId', '==', campaignId),
         orderBy('timestamp', 'desc'),
         limit(limitCount)
       );
@@ -709,10 +752,9 @@ export class FirebaseService {
 
   // Real-time subscriptions
   subscribeToMessages(campaignId: string, callback: (messages: GameMessage[]) => void): () => void {
-    const messagesRef = collection(db, 'messages');
+    const messagesRef = collection(db, 'campaigns', campaignId, 'messages');
     const q = query(
       messagesRef,
-      where('campaignId', '==', campaignId),
       orderBy('timestamp', 'desc'),
       limit(50)
     );

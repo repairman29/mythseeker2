@@ -129,14 +129,29 @@ export function useFirebase() {
     }
   }, [service]);
 
-  const sendMessage = useCallback(async (messageData: Partial<GameMessage>): Promise<GameMessage> => {
+  const sendMessage = useCallback(async (messageData: Partial<GameMessage>): Promise<string> => {
     try {
       setLoading(true);
       setError(null);
-      const message = await service.sendMessage(messageData);
-      return message;
+      const messageId = await service.sendMessage(messageData);
+      return messageId;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to send message';
+      setError(errorMessage);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, [service]);
+
+  const sendAIMessage = useCallback(async (campaignId: string, content: string, aiContext?: any): Promise<string> => {
+    try {
+      setLoading(true);
+      setError(null);
+      const messageId = await service.sendAIMessage(campaignId, content, aiContext);
+      return messageId;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to send AI message';
       setError(errorMessage);
       throw error;
     } finally {
@@ -190,6 +205,7 @@ export function useFirebase() {
     getCampaign,
     updateCampaign,
     sendMessage,
+    sendAIMessage,
     getMessages,
     subscribeToMessages,
     rollDice

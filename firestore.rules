@@ -54,9 +54,24 @@ service cloud.firestore {
           (isCampaignHost(campaignId) || 
            playerId == request.auth.uid);
       }
+
+      // Campaign messages subcollection
+      match /messages/{messageId} {
+        allow read: if isAuthenticated() && 
+          (isCampaignMember(campaignId) || 
+           isCampaignHost(campaignId));
+        
+        allow create: if isAuthenticated() && 
+          request.resource.data.senderId == request.auth.uid &&
+          (isCampaignMember(campaignId) || 
+           isCampaignHost(campaignId));
+        
+        allow update, delete: if isAuthenticated() && 
+          resource.data.senderId == request.auth.uid;
+      }
     }
 
-    // Game messages collection
+    // Legacy messages collection (for backward compatibility)
     match /messages/{messageId} {
       allow read: if isAuthenticated() && 
         (isCampaignMember(resource.data.campaignId) || 

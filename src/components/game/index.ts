@@ -6,4 +6,5 @@ export { FactionPanel } from './FactionPanel';
 export { EconomicPanel } from './EconomicPanel';
 export { QuestPanel } from './QuestPanel';
 export { NPCPanel } from './NPCPanel';
-export { GameSidebar } from './GameSidebar'; 
+export { GameSidebar } from './GameSidebar';
+export { StructuredMessage } from './StructuredMessage'; 

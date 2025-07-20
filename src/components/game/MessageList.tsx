@@ -1,17 +1,22 @@
 import React, { useEffect, useRef } from 'react';
-import { User, Bot, Shield, Dice6, MessageCircle, AlertTriangle } from 'lucide-react';
-import { GameMessage } from '../../types';
+import { User, Bot, Shield, Dice6, MessageCircle, AlertTriangle, Package } from 'lucide-react';
+import { GameMessage, InteractiveAction, InteractiveChoice } from '../../types';
+import { StructuredMessage } from './StructuredMessage';
 
 interface MessageListProps {
   messages: GameMessage[];
   currentUser: { id: string; displayName: string } | null;
   isAiTyping?: boolean;
+  onActionClick?: (action: InteractiveAction) => void;
+  onChoiceClick?: (choice: InteractiveChoice) => void;
 }
 
 export const MessageList: React.FC<MessageListProps> = ({
   messages,
   currentUser,
-  isAiTyping = false
+  isAiTyping = false,
+  onActionClick,
+  onChoiceClick
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -40,6 +45,7 @@ export const MessageList: React.FC<MessageListProps> = ({
     if (type === 'system') return <AlertTriangle className="h-4 w-4 text-yellow-400" />;
     if (type === 'dice') return <Dice6 className="h-4 w-4 text-green-400" />;
     if (type === 'combat') return <Shield className="h-4 w-4 text-red-400" />;
+    if (type === 'structured') return <Package className="h-4 w-4 text-orange-400" />;
     return <User className="h-4 w-4 text-gray-400" />;
   };
 
@@ -66,6 +72,10 @@ export const MessageList: React.FC<MessageListProps> = ({
       return 'bg-red-900/30 border-red-700/50 text-red-100';
     }
     
+    if (type === 'structured') {
+      return 'bg-orange-900/30 border-orange-700/50 text-orange-100';
+    }
+    
     if (isCurrentUser) {
       return 'bg-gray-700/50 border-gray-600/50 text-gray-100';
     }
@@ -74,6 +84,18 @@ export const MessageList: React.FC<MessageListProps> = ({
   };
 
   const renderMessageContent = (message: GameMessage) => {
+    // Handle structured messages
+    if (message.type === 'structured' && message.structuredContent) {
+      return (
+        <StructuredMessage
+          content={message.structuredContent}
+          onActionClick={onActionClick || (() => {})}
+          onChoiceClick={onChoiceClick || (() => {})}
+          currentUser={currentUser}
+        />
+      );
+    }
+
     // Handle dice roll messages
     if (message.type === 'dice' && message.metadata?.diceRoll) {
       const { diceRoll } = message.metadata;
@@ -115,7 +137,7 @@ export const MessageList: React.FC<MessageListProps> = ({
 
     return (
       <div 
-        className="prose prose-invert max-w-none"
+        className="prose-custom"
         dangerouslySetInnerHTML={{ __html: formattedContent }}
       />
     );

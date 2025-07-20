@@ -32,8 +32,15 @@ export class AIService {
 
   constructor() {
     // Initialize API endpoints from environment
-    this.vertexAiEndpoint = process.env.VITE_VERTEX_AI_ENDPOINT || '';
+    this.vertexAiEndpoint = process.env.VITE_VERTEX_AI_ENDPOINT || 'https://generativelanguage.googleapis.com';
     this.openAiEndpoint = 'https://api.openai.com/v1/chat/completions';
+    
+    console.log('🤖 AI Service: Initialized with endpoints:', {
+      vertexAiEndpoint: this.vertexAiEndpoint,
+      openAiEndpoint: this.openAiEndpoint,
+      hasOpenAIKey: !!process.env.VITE_OPENAI_API_KEY,
+      hasVertexAIKey: !!process.env.VITE_VERTEX_AI_API_KEY
+    });
   }
 
   async generateResponse(
@@ -41,25 +48,46 @@ export class AIService {
     userInput: string,
     aiPersonality: string = 'dramatic'
   ): Promise<string> {
+    console.log('🤖 AI Service: Starting response generation...');
+    console.log('🤖 AI Service: Context received:', {
+      campaignName: context.campaign.name,
+      campaignId: context.campaign.id,
+      recentMessagesCount: context.recentMessages.length,
+      charactersCount: context.characters.length,
+      worldState: context.worldState
+    });
+    console.log('🤖 AI Service: User input:', userInput);
+    console.log('🤖 AI Service: AI personality:', aiPersonality);
+
     try {
       // Try Vertex AI first (primary AI)
+      console.log('🤖 AI Service: Attempting Vertex AI (Gemini Pro)...');
       const vertexResponse = await this.tryVertexAI(context, userInput, aiPersonality);
       if (vertexResponse) {
+        console.log('🤖 AI Service: ✅ Vertex AI (Gemini Pro) response received:', vertexResponse.content.substring(0, 100) + '...');
         return vertexResponse.content;
       }
 
       // Fallback to OpenAI
+      console.log('🤖 AI Service: Vertex AI failed, attempting OpenAI (GPT-4)...');
       const openAiResponse = await this.tryOpenAI(context, userInput, aiPersonality);
       if (openAiResponse) {
+        console.log('🤖 AI Service: ✅ OpenAI (GPT-4) response received:', openAiResponse.content.substring(0, 100) + '...');
         return openAiResponse.content;
       }
 
       // Final fallback to intelligent local response
-      return this.generateIntelligentFallback(context, userInput, aiPersonality);
+      console.log('🤖 AI Service: ⚠️ External AI failed, using intelligent local fallback...');
+      const fallbackResponse = this.generateIntelligentFallback(context, userInput, aiPersonality);
+      console.log('🤖 AI Service: 🔄 Local fallback response:', fallbackResponse.substring(0, 100) + '...');
+      return fallbackResponse;
 
     } catch (error) {
-      console.error('AI Service Error:', error);
-      return this.generateIntelligentFallback(context, userInput, aiPersonality);
+      console.error('🤖 AI Service Error:', error);
+      console.log('🤖 AI Service: 🚨 Using emergency fallback...');
+      const emergencyResponse = this.generateIntelligentFallback(context, userInput, aiPersonality);
+      console.log('🤖 AI Service: 🆘 Emergency fallback response:', emergencyResponse.substring(0, 100) + '...');
+      return emergencyResponse;
     }
   }
 
@@ -68,20 +96,20 @@ export class AIService {
     userInput: string, 
     personality: string
   ): Promise<AIResponse | null> {
-    if (!this.vertexAiEndpoint) {
-      console.log('Vertex AI endpoint not configured, skipping...');
+    const vertexAiKey = process.env.VITE_VERTEX_AI_API_KEY;
+    if (!vertexAiKey) {
+      console.log('Vertex AI API key not configured, skipping...');
       return null;
     }
 
     try {
       const systemPrompt = this.buildAdvancedSystemPrompt(context, personality);
       
-      // Google Cloud Vertex AI API call
-      const response = await fetch(`${this.vertexAiEndpoint}/v1/projects/mythseekers-rpg/locations/us-central1/publishers/google/models/gemini-pro:generateContent`, {
+      // Google Generative AI API call (simpler than full Vertex AI)
+      const response = await fetch(`${this.vertexAiEndpoint}/v1beta/models/gemini-pro:generateContent?key=${vertexAiKey}`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${await this.getGCPAccessToken()}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           contents: [{
@@ -108,13 +136,16 @@ export class AIService {
       });
 
       if (!response.ok) {
-        throw new Error(`Vertex AI request failed: ${response.status}`);
+        const errorText = await response.text();
+        console.error('Vertex AI response error:', response.status, errorText);
+        throw new Error(`Vertex AI request failed: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
       const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
       
       if (content) {
+        console.log('🤖 AI Service: Vertex AI success!');
         return {
           content: this.enhanceWithPersonality(content, personality, context),
           model: 'gemini-pro',
@@ -123,6 +154,7 @@ export class AIService {
         };
       }
       
+      console.error('Vertex AI response missing content:', data);
       return null;
     } catch (error) {
       console.error('Vertex AI error:', error);
@@ -170,13 +202,16 @@ export class AIService {
       });
 
       if (!response.ok) {
-        throw new Error(`OpenAI request failed: ${response.status}`);
+        const errorText = await response.text();
+        console.error('OpenAI response error:', response.status, errorText);
+        throw new Error(`OpenAI request failed: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
       const content = data.choices?.[0]?.message?.content;
       
       if (content) {
+        console.log('🤖 AI Service: OpenAI success!');
         return {
           content: this.enhanceWithPersonality(content, personality, context),
           model: 'gpt-4',
@@ -185,17 +220,12 @@ export class AIService {
         };
       }
       
+      console.error('OpenAI response missing content:', data);
       return null;
     } catch (error) {
       console.error('OpenAI error:', error);
       return null;
     }
-  }
-
-  private async getGCPAccessToken(): Promise<string> {
-    // In production, this would use Google Cloud IAM
-    // For now, return placeholder - will be handled by Cloud Functions
-    return process.env.VITE_GCP_ACCESS_TOKEN || 'placeholder-token';
   }
 
   private buildAdvancedSystemPrompt(context: AIContext, personality: string): string {
@@ -305,6 +335,12 @@ RESPONSE REQUIREMENTS:
     const input = (userInput || '').toLowerCase();
     const { campaign, worldState } = context;
 
+    // Special handling for welcome messages
+    if (input.includes('dungeon master') && input.includes('set the stage')) {
+      console.log('🤖 AI Service: Detected welcome message request, generating scene-setting response...');
+      return this.generateWelcomeMessage(context, personality);
+    }
+
     // Contextual response categories based on input analysis
     const responseCategories = {
       exploration: [
@@ -350,6 +386,53 @@ RESPONSE REQUIREMENTS:
 
     const response = responses[Math.floor(Math.random() * responses.length)];
     return this.enhanceWithPersonality(response, personality, context);
+  }
+
+  private generateWelcomeMessage(context: AIContext, personality: string): string {
+    const { campaign, worldState, characters } = context;
+    
+    const timeDescriptions = {
+      morning: "Golden rays of dawn",
+      afternoon: "Warm afternoon sunlight",
+      evening: "Soft evening light",
+      night: "Silver moonlight",
+      midnight: "Deep midnight shadows"
+    };
+
+    const weatherDescriptions = {
+      "Clear skies": "crystal clear skies stretch overhead",
+      "Cloudy": "soft clouds drift lazily across the sky",
+      "Rainy": "gentle rain patters against the ground",
+      "Stormy": "dark storm clouds gather ominously",
+      "Foggy": "mysterious fog swirls around you"
+    };
+
+    const themeDescriptions = {
+      "High Fantasy": "magical realm where legends are born",
+      "Dark Fantasy": "shadowy world of danger and intrigue",
+      "Steampunk": "mechanical marvels and steam-powered wonders",
+      "Post-Apocalyptic": "ruined world struggling to rebuild",
+      "Medieval": "age of knights, castles, and chivalry",
+      "Sci-Fi": "futuristic world of technology and wonder",
+      "Horror": "terrifying realm where nightmares come to life",
+      "Adventure": "world of exploration and discovery",
+      "Mystery": "enigmatic realm of secrets and intrigue",
+      "Comedy": "whimsical world of laughter and lighthearted adventure"
+    };
+
+    const timeDesc = timeDescriptions[worldState.timeOfDay as keyof typeof timeDescriptions] || "Light";
+    const weatherDesc = weatherDescriptions[worldState.weather as keyof typeof weatherDescriptions] || "clear skies stretch overhead";
+    const themeDesc = themeDescriptions[campaign.theme as keyof typeof themeDescriptions] || "fantasy realm";
+
+    const characterIntro = characters.length > 0 
+      ? `\n\nYou find yourselves in ${worldState.currentLocation} - ${characters.map(c => `${c.name}, the ${c.race} ${c.class}`).join(' and ')} stand ready for adventure.`
+      : `\n\nYou find yourselves in ${worldState.currentLocation}, ready to begin your journey.`;
+
+    const baseMessage = `${timeDesc} filters through ${weatherDesc} as you step into the ${themeDesc} of ${campaign.name}. ${characterIntro}
+
+The ${worldState.season.toLowerCase()} air carries the promise of adventure, and the world around you seems to hold its breath, waiting for the story that's about to unfold.`;
+
+    return this.enhanceWithPersonality(baseMessage, personality, context);
   }
 
   async generateCombatNarrative(_action: string, result: number, _target?: string): Promise<string> {
