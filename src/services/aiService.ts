@@ -48,16 +48,13 @@ export class AIService {
     userInput: string,
     aiPersonality: string = 'dramatic'
   ): Promise<string> {
-    console.log('🤖 AI Service: Starting response generation...');
-    console.log('🤖 AI Service: Context received:', {
-      campaignName: context.campaign.name,
-      campaignId: context.campaign.id,
-      recentMessagesCount: context.recentMessages.length,
-      charactersCount: context.characters.length,
-      worldState: context.worldState
+    console.log('🤖 AI Service: generateResponse called with:', {
+      userInput: userInput.substring(0, 100) + '...',
+      aiPersonality,
+      hasCampaign: !!context.campaign,
+      hasCharacters: context.characters.length,
+      hasWorldState: !!context.worldState
     });
-    console.log('🤖 AI Service: User input:', userInput);
-    console.log('🤖 AI Service: AI personality:', aiPersonality);
 
     try {
       // Try Vertex AI first (primary AI)
@@ -76,18 +73,15 @@ export class AIService {
         return openAiResponse.content;
       }
 
-      // Final fallback to intelligent local response
-      console.log('🤖 AI Service: ⚠️ External AI failed, using intelligent local fallback...');
+      // Final fallback to intelligent local responses
+      console.log('🤖 AI Service: Both external AIs failed, using intelligent fallback...');
       const fallbackResponse = this.generateIntelligentFallback(context, userInput, aiPersonality);
-      console.log('🤖 AI Service: 🔄 Local fallback response:', fallbackResponse.substring(0, 100) + '...');
+      console.log('🤖 AI Service: ✅ Intelligent fallback response generated:', fallbackResponse.substring(0, 100) + '...');
       return fallbackResponse;
-
     } catch (error) {
-      console.error('🤖 AI Service Error:', error);
-      console.log('🤖 AI Service: 🚨 Using emergency fallback...');
-      const emergencyResponse = this.generateIntelligentFallback(context, userInput, aiPersonality);
-      console.log('🤖 AI Service: 🆘 Emergency fallback response:', emergencyResponse.substring(0, 100) + '...');
-      return emergencyResponse;
+      console.error('🤖 AI Service: Error in generateResponse:', error);
+      console.log('🤖 AI Service: Using emergency fallback...');
+      return this.generateIntelligentFallback(context, userInput, aiPersonality);
     }
   }
 
@@ -97,67 +91,68 @@ export class AIService {
     personality: string
   ): Promise<AIResponse | null> {
     const vertexAiKey = process.env.VITE_VERTEX_AI_API_KEY;
+    console.log('🤖 AI Service: Vertex AI check - API key present:', !!vertexAiKey);
     if (!vertexAiKey) {
-      console.log('Vertex AI API key not configured, skipping...');
+      console.log('🤖 AI Service: Vertex AI API key not configured, skipping...');
       return null;
     }
 
     try {
       const systemPrompt = this.buildAdvancedSystemPrompt(context, personality);
+      console.log('🤖 AI Service: Vertex AI system prompt length:', systemPrompt.length);
       
       // Google Generative AI API call (simpler than full Vertex AI)
+      const requestBody = {
+        contents: [{
+          role: 'user',
+          parts: [{
+            text: `${systemPrompt}\n\nUser Input: ${userInput}`
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.8,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 1024
+        }
+      };
+
+      console.log('🤖 AI Service: Vertex AI request body prepared, making API call...');
+      
       const response = await fetch(`${this.vertexAiEndpoint}/v1beta/models/gemini-pro:generateContent?key=${vertexAiKey}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          contents: [{
-            role: 'user',
-            parts: [{ text: `${systemPrompt}\n\nPlayer Action: ${userInput}` }]
-          }],
-          generationConfig: {
-            temperature: 0.8,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 1000,
-          },
-          safetySettings: [
-            {
-              category: 'HARM_CATEGORY_HARASSMENT',
-              threshold: 'BLOCK_MEDIUM_AND_ABOVE'
-            },
-            {
-              category: 'HARM_CATEGORY_HATE_SPEECH',
-              threshold: 'BLOCK_MEDIUM_AND_ABOVE'
-            }
-          ]
-        })
+        body: JSON.stringify(requestBody)
       });
 
+      console.log('🤖 AI Service: Vertex AI response status:', response.status);
+      
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Vertex AI response error:', response.status, errorText);
-        throw new Error(`Vertex AI request failed: ${response.status} - ${errorText}`);
+        console.error('🤖 AI Service: Vertex AI API error:', response.status, errorText);
+        return null;
       }
 
       const data = await response.json();
-      const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      console.log('🤖 AI Service: Vertex AI response data keys:', Object.keys(data));
       
-      if (content) {
-        console.log('🤖 AI Service: Vertex AI success!');
+      if (data.candidates && data.candidates[0] && data.candidates[0].content) {
+        const content = data.candidates[0].content.parts[0].text;
+        console.log('🤖 AI Service: Vertex AI success - content length:', content.length);
         return {
-          content: this.enhanceWithPersonality(content, personality, context),
+          content,
           model: 'gemini-pro',
-          responseTime: Date.now() - Date.now(),
-          confidence: 0.95
+          responseTime: Date.now(),
+          confidence: 0.9
         };
+      } else {
+        console.error('🤖 AI Service: Vertex AI unexpected response format:', data);
+        return null;
       }
-      
-      console.error('Vertex AI response missing content:', data);
-      return null;
     } catch (error) {
-      console.error('Vertex AI error:', error);
+      console.error('🤖 AI Service: Vertex AI request failed:', error);
       return null;
     }
   }
