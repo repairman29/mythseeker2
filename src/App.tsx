@@ -1,61 +1,9 @@
 import React from "react";
-import { useGameState, useFirebase } from "./hooks";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { DashboardPage, CharactersPage, CampaignsPage, GamePage, AchievementsPage } from "./pages";
-import { LoadingSpinner, ToastManager, useToast } from "./components/ui";
-import AchievementService from "./services/achievementService";
-import SoundService from "./services/soundService";
-import './assets/index.css';
-
-// Achievement notification component
-const AchievementNotifier: React.FC = () => {
-  const { showAchievement } = useToast();
-  const { user } = useAuth();
-
-  React.useEffect(() => {
-    if (!user) return;
-
-    const achievementService = AchievementService.getInstance();
-    const soundService = SoundService.getInstance();
-    
-    const callback = {
-      onAchievementUnlocked: async (achievement: any, user: any) => {
-        // Show toast notification
-        showAchievement(
-          `🏆 ${achievement.title} Unlocked!`,
-          achievement.description
-        );
-
-        // Play appropriate sound based on rarity
-        try {
-          switch (achievement.rarity) {
-            case 'legendary':
-              await soundService.playLegendaryAchievement();
-              break;
-            case 'epic':
-            case 'rare':
-              await soundService.playRareAchievement();
-              break;
-            default:
-              await soundService.playAchievementUnlock();
-              break;
-          }
-        } catch (error) {
-          console.warn('Failed to play achievement sound:', error);
-        }
-      }
-    };
-
-    achievementService.registerCallback(callback);
-
-    return () => {
-      achievementService.unregisterCallback(callback);
-    };
-  }, [user, showAchievement]);
-
-  return null;
-};
+import { DashboardPage, CharactersPage, CampaignsPage, GamePage } from "./pages";
+import { LoadingSpinner } from "./components/ui/LoadingSpinner";
+import "./assets/index.css";
 
 const AppContent: React.FC = () => {
   const { user, loading, loginWithGoogle } = useAuth();
@@ -115,9 +63,8 @@ const AppContent: React.FC = () => {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/characters" element={<CharactersPage />} />
           <Route path="/campaigns" element={<CampaignsPage />} />
-          <Route path="/game" element={<Navigate to="/campaigns" replace />} />
           <Route path="/game/:campaignId" element={<GamePage />} />
-          <Route path="/achievements" element={<AchievementsPage />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </div>
     </Router>
@@ -127,10 +74,7 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      <ToastManager>
-        <AchievementNotifier />
-        <AppContent />
-      </ToastManager>
+      <AppContent />
     </AuthProvider>
   );
 };

@@ -8,7 +8,6 @@ import {
   createItemDiscoveryMessage, 
   createChoicePromptMessage, 
   createLootDropMessage,
-  createNPCInteractionMessage,
   sampleItems,
   sampleChoices 
 } from '../utils/structuredMessageHelpers';
