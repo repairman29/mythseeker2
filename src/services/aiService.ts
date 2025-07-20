@@ -10,7 +10,7 @@ interface WorldState {
   npcs?: NPC[];
 }
 
-interface AIContext {
+export interface AIContext {
   campaign: Campaign;
   recentMessages: GameMessage[];
   characters: Character[];
@@ -302,7 +302,7 @@ RESPONSE REQUIREMENTS:
   }
 
   private generateIntelligentFallback(context: AIContext, userInput: string, personality: string): string {
-    const input = userInput.toLowerCase();
+    const input = (userInput || '').toLowerCase();
     const { campaign, worldState } = context;
 
     // Contextual response categories based on input analysis
@@ -411,4 +411,7 @@ RESPONSE REQUIREMENTS:
   getConversationHistory(campaignId: string): GameMessage[] {
     return this.conversationHistory.get(campaignId) || [];
   }
-} 
+}
+
+// Export singleton instance
+export const aiService = new AIService(); 

@@ -1,171 +1,180 @@
-import React, { useState } from 'react';
-import { Dice6, Target, Eye, Shield, Sword } from 'lucide-react';
-import { Advanced3DDice } from './Advanced3DDice';
-import { Button } from '../ui';
-import { DiceType } from '../../types';
-
-interface DiceRollResult {
-  id: string;
-  type: string;
-  result: number;
-  modifier: number;
-  total: number;
-  critical: boolean;
-  timestamp: Date;
-}
+import React, { useState, useCallback } from 'react';
+import { Button } from '../ui/Button';
+import SoundService from '../../services/soundService';
 
 interface DiceRollerProps {
-  onRoll: (diceType: string, result: number, total: number, critical: boolean) => void;
+  onRoll?: (result: DiceResult) => void;
   disabled?: boolean;
 }
 
+export interface DiceResult {
+  diceType: string;
+  result: number;
+  modifier: number;
+  total: number;
+  isCritical: boolean;
+  isNatural20: boolean;
+  rolls: number[];
+}
+
+const DICE_TYPES = [
+  { value: 'd4', label: 'D4' },
+  { value: 'd6', label: 'D6' },
+  { value: 'd8', label: 'D8' },
+  { value: 'd10', label: 'D10' },
+  { value: 'd12', label: 'D12' },
+  { value: 'd20', label: 'D20' },
+  { value: 'd100', label: 'D100' }
+];
+
 export const DiceRoller: React.FC<DiceRollerProps> = ({ onRoll, disabled = false }) => {
-  const [currentRolls, setCurrentRolls] = useState<Map<string, { isRolling: boolean; result?: number }>>(new Map());
+  const [selectedDice, setSelectedDice] = useState('d20');
   const [modifier, setModifier] = useState(0);
-  const [rollHistory, setRollHistory] = useState<DiceRollResult[]>([]);
+  const [lastResult, setLastResult] = useState<DiceResult | null>(null);
+  const [isRolling, setIsRolling] = useState(false);
+  const [soundService] = useState(() => SoundService.getInstance());
 
-  const rollDice = async (diceType: string) => {
-    if (disabled) return;
+  const rollDice = useCallback(async () => {
+    if (disabled || isRolling) return;
 
-    setCurrentRolls(prev => new Map(prev).set(diceType, { isRolling: true }));
+    setIsRolling(true);
 
-    setTimeout(() => {
-      const sides = diceType === 'd100' ? 100 : parseInt(diceType.substring(1));
-      const result = Math.floor(Math.random() * sides) + 1;
+    try {
+      // Play dice roll sound
+      await soundService.playDiceRoll();
+
+      // Simulate rolling animation
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const diceType = selectedDice;
+      const sides = parseInt(diceType.substring(1));
+      const rolls: number[] = [];
+      
+      // For d100, roll two d10s
+      if (diceType === 'd100') {
+        const tens = Math.floor(Math.random() * 10) * 10;
+        const ones = Math.floor(Math.random() * 10);
+        rolls.push(tens + ones);
+      } else {
+        rolls.push(Math.floor(Math.random() * sides) + 1);
+      }
+
+      const result = rolls[0];
       const total = result + modifier;
-      const critical = (diceType === 'd20' && (result === 20 || result === 1));
+      const isNatural20 = diceType === 'd20' && result === 20;
+      const isCritical = isNatural20 || (diceType === 'd20' && result === 1);
 
-      setCurrentRolls(prev => new Map(prev).set(diceType, { isRolling: false, result }));
-
-      const rollEntry: DiceRollResult = {
-        id: 'roll-' + Date.now(),
-        type: diceType,
+      const diceResult: DiceResult = {
+        diceType,
         result,
         modifier,
         total,
-        critical,
-        timestamp: new Date()
+        isCritical,
+        isNatural20,
+        rolls
       };
-      setRollHistory(prev => [rollEntry, ...prev.slice(0, 9)]);
 
-      onRoll(diceType, result, total, critical);
+      setLastResult(diceResult);
 
-      setTimeout(() => {
-        setCurrentRolls(prev => {
-          const newMap = new Map(prev);
-          newMap.delete(diceType);
-          return newMap;
-        });
-      }, 3000);
-    }, 1500);
-  };
+      // Play critical hit sound if applicable
+      if (isCritical) {
+        await soundService.playCriticalHit();
+      }
 
-  const diceTypes: Array<{ type: DiceType; label: string; sides: number }> = [
-    { type: 'd4', label: 'd4', sides: 4 },
-    { type: 'd6', label: 'd6', sides: 6 },
-    { type: 'd8', label: 'd8', sides: 8 },
-    { type: 'd10', label: 'd10', sides: 10 },
-    { type: 'd12', label: 'd12', sides: 12 },
-    { type: 'd20', label: 'd20', sides: 20 },
-    { type: 'd100', label: 'd%', sides: 100 }
-  ];
+      onRoll?.(diceResult);
+    } catch (error) {
+      console.error('Error rolling dice:', error);
+    } finally {
+      setIsRolling(false);
+    }
+  }, [selectedDice, modifier, disabled, isRolling, onRoll, soundService]);
+
+  const handleKeyPress = useCallback((event: React.KeyboardEvent) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      rollDice();
+    }
+  }, [rollDice]);
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-medium text-gray-900 flex items-center gap-2">
-          <Dice6 className="h-5 w-5 text-blue-600" />
-          Dice Roller
-        </h3>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-600">Modifier:</span>
-          <input
-            type="number"
-            value={modifier}
-            onChange={(e) => setModifier(parseInt(e.target.value) || 0)}
-            className="w-16 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
-            min="-10"
-            max="10"
-          />
+    <div className="bg-gray-800 rounded-lg p-6 space-y-4">
+      <h3 className="text-lg font-semibold text-white mb-4">Dice Roller</h3>
+      
+      {/* Dice Selection */}
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-300">Dice Type</label>
+        <div className="grid grid-cols-4 gap-2">
+          {DICE_TYPES.map(dice => (
+            <button
+              key={dice.value}
+              onClick={() => setSelectedDice(dice.value)}
+              className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                selectedDice === dice.value
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              {dice.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 mb-4">
-        {diceTypes.map(dice => {
-          const rollState = currentRolls.get(dice.type);
-          return (
-            <Advanced3DDice
-              key={dice.type}
-              type={dice.type}
-              isRolling={rollState?.isRolling || false}
-              result={rollState?.result}
-              onRoll={rollDice}
-              disabled={disabled}
-            />
-          );
-        })}
+      {/* Modifier */}
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-300">Modifier</label>
+        <input
+          type="number"
+          value={modifier}
+          onChange={(e) => setModifier(parseInt(e.target.value) || 0)}
+          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="0"
+        />
       </div>
 
-      <div className="grid grid-cols-2 gap-2 mb-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => rollDice('d20')}
-          disabled={disabled}
-          icon={<Target className="h-4 w-4" />}
-        >
-          Attack Roll
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => rollDice('d20')}
-          disabled={disabled}
-          icon={<Eye className="h-4 w-4" />}
-        >
-          Skill Check
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => rollDice('d20')}
-          disabled={disabled}
-          icon={<Shield className="h-4 w-4" />}
-        >
-          Save
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => rollDice('d6')}
-          disabled={disabled}
-          icon={<Sword className="h-4 w-4" />}
-        >
-          Damage
-        </Button>
-      </div>
+      {/* Roll Button */}
+      <Button
+        onClick={rollDice}
+        disabled={disabled || isRolling}
+        className="w-full py-3 text-lg font-semibold"
+        variant="primary"
+      >
+        {isRolling ? 'Rolling...' : `Roll ${selectedDice.toUpperCase()}${modifier !== 0 ? ` ${modifier > 0 ? '+' : ''}${modifier}` : ''}`}
+      </Button>
 
-      {rollHistory.length > 0 && (
-        <div>
-          <h4 className="text-sm font-medium text-gray-700 mb-2">Recent Rolls</h4>
-          <div className="space-y-1 max-h-32 overflow-y-auto">
-            {rollHistory.map(roll => (
-              <div key={roll.id} className={`flex justify-between items-center text-xs px-2 py-1 rounded ${
-                roll.critical ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-50 text-gray-600'
-              }`}>
-                <span className="font-medium">
-                  {roll.type}: {roll.result}
-                  {roll.modifier !== 0 && ` ${roll.modifier >= 0 ? '+' : ''}${roll.modifier}`}
-                  {roll.modifier !== 0 && ` = ${roll.total}`}
+      {/* Last Result */}
+      {lastResult && (
+        <div className="mt-4 p-4 bg-gray-700 rounded-lg">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-white mb-2">
+              {lastResult.total}
+            </div>
+            <div className="text-sm text-gray-300">
+              {lastResult.diceType.toUpperCase()}: {lastResult.result}
+              {lastResult.modifier !== 0 && (
+                <span className="ml-1">
+                  {lastResult.modifier > 0 ? '+' : ''}{lastResult.modifier}
                 </span>
-                <span className="text-gray-500">
-                  {roll.timestamp.toLocaleTimeString([], { timeStyle: 'short' })}
-                </span>
+              )}
+            </div>
+            {lastResult.isNatural20 && (
+              <div className="mt-2 text-yellow-400 font-semibold">
+                🎯 Natural 20!
               </div>
-            ))}
+            )}
+            {lastResult.isCritical && !lastResult.isNatural20 && (
+              <div className="mt-2 text-red-400 font-semibold">
+                💀 Critical Failure!
+              </div>
+            )}
           </div>
         </div>
       )}
+
+      {/* Keyboard Shortcuts */}
+      <div className="text-xs text-gray-400 text-center">
+        Press Enter or Space to roll
+      </div>
     </div>
   );
 }; 

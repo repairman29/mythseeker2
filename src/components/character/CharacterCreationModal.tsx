@@ -114,7 +114,7 @@ export const CharacterCreationModal: React.FC<CharacterCreationModalProps> = ({
         return (
           <div className="space-y-6">
             <div>
-              <h4 className="text-lg font-medium text-gray-900 mb-3">Choose Your Race</h4>
+              <h4 className="text-lg font-medium text-white mb-3">Choose Your Race</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {races.map(race => (
                   <button
@@ -122,19 +122,19 @@ export const CharacterCreationModal: React.FC<CharacterCreationModalProps> = ({
                     onClick={() => setFormData(prev => ({ ...prev, race: race.value }))}
                     className={`p-3 border rounded-lg text-left transition-colors ${
                       formData.race === race.value
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-300 hover:bg-gray-50'
+                        ? 'border-blue-500 bg-blue-900/20 text-white'
+                        : 'border-gray-600 hover:bg-gray-700 text-gray-200'
                     }`}
                   >
                     <div className="font-medium">{race.label}</div>
-                    <div className="text-sm text-gray-600">{race.description}</div>
+                    <div className="text-sm text-gray-300">{race.description}</div>
                   </button>
                 ))}
               </div>
             </div>
 
             <div>
-              <h4 className="text-lg font-medium text-gray-900 mb-3">Choose Your Class</h4>
+              <h4 className="text-lg font-medium text-white mb-3">Choose Your Class</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {classes.map(cls => (
                   <button
@@ -142,12 +142,12 @@ export const CharacterCreationModal: React.FC<CharacterCreationModalProps> = ({
                     onClick={() => setFormData(prev => ({ ...prev, class: cls.value }))}
                     className={`p-3 border rounded-lg text-left transition-colors ${
                       formData.class === cls.value
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-300 hover:bg-gray-50'
+                        ? 'border-blue-500 bg-blue-900/20 text-white'
+                        : 'border-gray-600 hover:bg-gray-700 text-gray-200'
                     }`}
                   >
                     <div className="font-medium">{cls.label}</div>
-                    <div className="text-sm text-gray-600">{cls.description}</div>
+                    <div className="text-sm text-gray-300">{cls.description}</div>
                   </button>
                 ))}
               </div>
@@ -158,7 +158,7 @@ export const CharacterCreationModal: React.FC<CharacterCreationModalProps> = ({
       case 2:
         return (
           <div className="space-y-4">
-            <h4 className="text-lg font-medium text-gray-900 mb-3">Choose Your Background</h4>
+            <h4 className="text-lg font-medium text-white mb-3">Choose Your Background</h4>
             <div className="grid grid-cols-1 gap-3">
               {backgrounds.map(bg => (
                 <button
@@ -166,12 +166,12 @@ export const CharacterCreationModal: React.FC<CharacterCreationModalProps> = ({
                   onClick={() => setFormData(prev => ({ ...prev, background: bg.value }))}
                   className={`p-3 border rounded-lg text-left transition-colors ${
                     formData.background === bg.value
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-300 hover:bg-gray-50'
+                      ? 'border-blue-500 bg-blue-900/20 text-white'
+                      : 'border-gray-600 hover:bg-gray-700 text-gray-200'
                   }`}
                 >
                   <div className="font-medium">{bg.label}</div>
-                  <div className="text-sm text-gray-600">{bg.description}</div>
+                  <div className="text-sm text-gray-300">{bg.description}</div>
                 </button>
               ))}
             </div>
@@ -181,16 +181,16 @@ export const CharacterCreationModal: React.FC<CharacterCreationModalProps> = ({
       case 3:
         return (
           <div className="space-y-4">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="text-lg font-medium text-blue-900 mb-2">Character Summary</h4>
-              <div className="text-blue-800">
+            <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
+              <h4 className="text-lg font-medium text-blue-300 mb-2">Character Summary</h4>
+              <div className="text-blue-200">
                 <p><strong>Name:</strong> {formData.name || 'Unnamed Character'}</p>
                 <p><strong>Race:</strong> {races.find(r => r.value === formData.race)?.label}</p>
                 <p><strong>Class:</strong> {classes.find(c => c.value === formData.class)?.label}</p>
                 <p><strong>Background:</strong> {backgrounds.find(b => b.value === formData.background)?.label}</p>
               </div>
             </div>
-            <p className="text-gray-600">
+            <p className="text-gray-300">
               Your character will be created with standard starting equipment and abilities. 
               You can customize further details after creation.
             </p>
@@ -225,15 +225,15 @@ export const CharacterCreationModal: React.FC<CharacterCreationModalProps> = ({
         </div>
 
         <div className="text-center">
-          <h3 className="text-lg font-medium text-gray-900">{steps[currentStep].title}</h3>
-          <p className="text-gray-600">{steps[currentStep].description}</p>
+          <h3 className="text-lg font-medium text-white">{steps[currentStep].title}</h3>
+          <p className="text-gray-300">{steps[currentStep].description}</p>
         </div>
 
         <div className="min-h-[300px]">
           {renderStep()}
         </div>
 
-        <div className="flex justify-between pt-4 border-t border-gray-200">
+        <div className="flex justify-between pt-4 border-t border-gray-700">
           <Button
             variant="outline"
             onClick={currentStep === 0 ? onClose : handleBack}

@@ -16,8 +16,8 @@ export const Input: React.FC<InputProps> = ({
 }) => (
   <div className={className}>
     {label && (
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        {label} {required && <span className="text-red-500">*</span>}
+      <label className="block text-sm font-medium text-gray-200 mb-1">
+        {label} {required && <span className="text-red-400">*</span>}
       </label>
     )}
     <div className="relative">
@@ -33,19 +33,20 @@ export const Input: React.FC<InputProps> = ({
         onChange={(e) => onChange?.(e.target.value)}
         className={`
           w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors
+          bg-gray-700 text-white placeholder-gray-400
           ${icon ? 'pl-10' : ''}
-          ${error ? 'border-red-300 focus:ring-red-500' : 'border-gray-300'}
-          ${disabled ? 'bg-gray-100 cursor-not-allowed' : ''}
+          ${error ? 'border-red-400 focus:ring-red-400' : 'border-gray-600'}
+          ${disabled ? 'bg-gray-600 cursor-not-allowed' : ''}
         `}
         required={required}
         disabled={disabled}
       />
     </div>
     {error && (
-      <p className="mt-1 text-sm text-red-600">{error}</p>
+      <p className="mt-1 text-sm text-red-400">{error}</p>
     )}
     {helpText && !error && (
-      <p className="mt-1 text-sm text-gray-500">{helpText}</p>
+      <p className="mt-1 text-sm text-gray-400">{helpText}</p>
     )}
   </div>
 ); 

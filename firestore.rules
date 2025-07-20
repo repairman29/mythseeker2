@@ -59,11 +59,13 @@ service cloud.firestore {
     // Game messages collection
     match /messages/{messageId} {
       allow read: if isAuthenticated() && 
-        isCampaignMember(resource.data.campaignId);
+        (isCampaignMember(resource.data.campaignId) || 
+         isCampaignHost(resource.data.campaignId));
       
       allow create: if isAuthenticated() && 
         request.resource.data.senderId == request.auth.uid &&
-        isCampaignMember(request.resource.data.campaignId);
+        (isCampaignMember(request.resource.data.campaignId) || 
+         isCampaignHost(request.resource.data.campaignId));
       
       allow update, delete: if isAuthenticated() && 
         resource.data.senderId == request.auth.uid;

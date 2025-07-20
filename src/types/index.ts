@@ -11,4 +11,10 @@ export * from './campaign';
 export * from './game';
 
 // UI types
-export * from './ui'; 
+export * from './ui';
+
+// Quest types
+export * from './quest';
+
+// NPC types
+export * from './npc'; 

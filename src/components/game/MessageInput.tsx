@@ -88,14 +88,14 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   ];
 
   return (
-    <div className="bg-white border-t border-gray-200 p-4">
+    <div className="bg-gray-800 border-t border-gray-700 p-4">
       {/* Quick Actions */}
       <div className="flex flex-wrap gap-2 mb-3">
         {quickActions.map((action, index) => (
           <button
             key={index}
             onClick={() => setMessage(action.action)}
-            className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+            className="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-full transition-colors"
             disabled={disabled}
           >
             {action.label}
@@ -104,7 +104,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         
         <button
           onClick={() => onRollDice('d20')}
-          className="px-3 py-1 text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-full transition-colors flex items-center gap-1"
+          className="px-3 py-1 text-xs bg-blue-700 hover:bg-blue-600 text-blue-200 rounded-full transition-colors flex items-center gap-1"
           disabled={disabled}
         >
           <Dice6 className="h-3 w-3" />
@@ -114,8 +114,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 
       {/* Target User Selector for Secret Messages */}
       {showTargetSelector && (
-        <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-sm font-medium text-red-800 mb-2">Send secret message to:</p>
+        <div className="mb-3 p-3 bg-red-900/30 border border-red-700/50 rounded-lg">
+          <p className="text-sm font-medium text-red-200 mb-2">Send secret message to:</p>
           <div className="flex flex-wrap gap-2">
             {players.map(player => (
               <button
@@ -123,8 +123,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
                 onClick={() => togglePlayerTarget(player.id)}
                 className={`px-3 py-1 text-xs rounded-full transition-colors ${
                   targetUsers.includes(player.id)
-                    ? 'bg-red-200 text-red-800'
-                    : 'bg-white border border-red-300 text-red-600 hover:bg-red-100'
+                    ? 'bg-red-700 text-red-200'
+                    : 'bg-gray-700 border border-red-600/50 text-red-300 hover:bg-red-800/50'
                 }`}
               >
                 {player.name}
@@ -146,10 +146,11 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             disabled={disabled}
             rows={1}
             className={`
-              w-full px-4 py-2 pr-12 border border-gray-300 rounded-lg resize-none
+              w-full px-4 py-2 pr-12 border border-gray-600 rounded-lg resize-none
+              bg-gray-700 text-gray-200 placeholder-gray-400
               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-              ${isSecret ? 'border-red-300 bg-red-50' : ''}
-              ${disabled ? 'bg-gray-100 cursor-not-allowed' : ''}
+              ${isSecret ? 'border-red-500 bg-red-900/20' : ''}
+              ${disabled ? 'bg-gray-800 cursor-not-allowed' : ''}
             `}
             style={{ 
               minHeight: '40px',
@@ -164,7 +165,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             onClick={toggleSecretMessage}
             className={`
               absolute right-2 top-2 p-1 rounded transition-colors
-              ${isSecret ? 'text-red-600 bg-red-100' : 'text-gray-400 hover:text-gray-600'}
+              ${isSecret ? 'text-red-400 bg-red-900/50' : 'text-gray-400 hover:text-gray-300'}
             `}
             title={isSecret ? 'Cancel secret message' : 'Send secret message'}
             disabled={disabled}
@@ -184,9 +185,9 @@ export const MessageInput: React.FC<MessageInputProps> = ({
       </form>
 
       {/* Command Help */}
-      <div className="mt-2 text-xs text-gray-500">
+      <div className="mt-2 text-xs text-gray-400">
         <p>
-          Commands: <code>/roll d20</code>, <code>/roll d6</code>, etc. | 
+          Commands: <code className="bg-gray-700 px-1 rounded">/roll d20</code>, <code className="bg-gray-700 px-1 rounded">/roll d6</code>, etc. | 
           <strong>Shift+Enter</strong> for new line
         </p>
       </div>

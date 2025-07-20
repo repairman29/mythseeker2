@@ -11,4 +11,7 @@ export * from './character';
 export * from './game';
 
 // Campaign Components
-export * from './campaign'; 
+export * from './campaign';
+
+// Achievement Components
+export * from './achievement'; 

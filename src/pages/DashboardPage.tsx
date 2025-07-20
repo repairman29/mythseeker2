@@ -1,156 +1,152 @@
-import React from 'react';
-import { useAuth, useFirebase, useGameState } from '../hooks';
-import { Button, CharacterCard, LoadingSpinner } from '../components';
-import { Character, Campaign } from '../types';
+import React, { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { Button, SoundSettings } from '../components/ui';
+import { Link } from 'react-router-dom';
 
-const DashboardPage: React.FC = () => {
-  const { user } = useAuth();
-  const { getCharacters, getCampaigns } = useFirebase();
-  const { currentCampaign, joinCampaign } = useGameState();
-  
-  const [characters, setCharacters] = React.useState<Character[]>([]);
-  const [campaigns, setCampaigns] = React.useState<Campaign[]>([]);
-  const [loading, setLoading] = React.useState(true);
+export const DashboardPage: React.FC = () => {
+  const { user, logout } = useAuth();
+  const [showSoundSettings, setShowSoundSettings] = useState(false);
 
-  React.useEffect(() => {
-    const loadDashboardData = async () => {
-      if (user) {
-        try {
-          const [userCharacters, userCampaigns] = await Promise.all([
-            getCharacters(user.id),
-            getCampaigns(user.id)
-          ]);
-          setCharacters(userCharacters);
-          setCampaigns(userCampaigns);
-        } catch (error) {
-          console.error('Failed to load dashboard data:', error);
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
-
-    loadDashboardData();
-  }, [user, getCharacters, getCampaigns]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <LoadingSpinner />
-      </div>
-    );
-  }
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
 
   return (
-    <div className="space-y-8">
-      {/* Welcome Section */}
-      <div className="bg-gray-800 rounded-lg p-6">
-        <h1 className="text-2xl font-bold text-white mb-2">
-          Welcome back, {user?.displayName}!
-        </h1>
-        <p className="text-gray-300">
-          Ready for your next adventure? Create a character or join a campaign to get started.
-        </p>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-gray-800 rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">Quick Actions</h2>
-          <div className="space-y-3">
-            <Button variant="primary" className="w-full">
-              Create Character
-            </Button>
-            <Button variant="secondary" className="w-full">
-              Join Campaign
-            </Button>
-            <Button variant="secondary" className="w-full">
-              Start Solo Adventure
-            </Button>
-          </div>
-        </div>
-
-        {/* Current Campaign */}
-        <div className="bg-gray-800 rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">Current Campaign</h2>
-          {currentCampaign ? (
-            <div className="space-y-3">
-              <h3 className="text-white font-medium">{currentCampaign.name}</h3>
-              <p className="text-gray-300 text-sm">{currentCampaign.description}</p>
-              <Button variant="primary" className="w-full">
-                Continue Playing
-              </Button>
-            </div>
-          ) : (
-            <div className="text-center">
-              <p className="text-gray-400 mb-4">No active campaign</p>
-              <Button variant="secondary" className="w-full">
-                Find Campaign
-              </Button>
-            </div>
-          )}
-        </div>
-
-        {/* Stats */}
-        <div className="bg-gray-800 rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">Your Stats</h2>
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-gray-300">Characters:</span>
-              <span className="text-white font-medium">{characters.length}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-300">Campaigns:</span>
-              <span className="text-white font-medium">{campaigns.length}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-300">Sessions:</span>
-              <span className="text-white font-medium">{user?.stats?.sessionsAttended || 0}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Characters */}
-      {characters.length > 0 && (
-        <div className="bg-gray-800 rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">Recent Characters</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {characters.slice(0, 3).map(character => (
-              <CharacterCard key={character.id} character={character} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Available Campaigns */}
-      {campaigns.length > 0 && (
-        <div className="bg-gray-800 rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">Available Campaigns</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {campaigns.slice(0, 3).map(campaign => (
-              <div key={campaign.id} className="bg-gray-700 rounded-lg p-4">
-                <h3 className="text-white font-medium mb-2">{campaign.name}</h3>
-                <p className="text-gray-300 text-sm mb-3">{campaign.description}</p>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400 text-sm">
-                    {campaign.players.length}/{campaign.maxPlayers} players
-                  </span>
-                  <Button 
-                    variant="primary" 
-                    size="sm"
-                    onClick={() => joinCampaign(campaign.id)}
-                  >
-                    Join
-                  </Button>
-                </div>
+    <div className="min-h-screen bg-gray-900 text-white">
+      {/* Header */}
+      <header className="bg-gray-800 border-b border-gray-700">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <h1 className="text-2xl font-bold">MythSeeker Dashboard</h1>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setShowSoundSettings(true)}
+                className="p-2 text-gray-300 hover:text-white transition-colors"
+                title="Sound Settings"
+              >
+                🔊
+              </button>
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-300">
+                  Welcome, {user?.displayName || user?.email}
+                </span>
+                <Button onClick={handleLogout} variant="outline" size="sm">
+                  Logout
+                </Button>
               </div>
-            ))}
+            </div>
           </div>
         </div>
-      )}
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Quick Stats */}
+          <div className="bg-gray-800 rounded-lg p-6">
+            <h2 className="text-xl font-semibold mb-4">Quick Stats</h2>
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-gray-300">Characters Created</span>
+                <span className="font-semibold">0</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-300">Campaigns Hosted</span>
+                <span className="font-semibold">0</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-300">Messages Sent</span>
+                <span className="font-semibold">0</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-300">Achievements Earned</span>
+                <span className="font-semibold">0</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="bg-gray-800 rounded-lg p-6">
+            <h2 className="text-xl font-semibold mb-4">Quick Actions</h2>
+            <div className="space-y-3">
+              <Link
+                to="/characters"
+                className="block w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg text-center font-medium transition-colors"
+              >
+                Create Character
+              </Link>
+              <Link
+                to="/campaigns"
+                className="block w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg text-center font-medium transition-colors"
+              >
+                Host Campaign
+              </Link>
+              <Link
+                to="/achievements"
+                className="block w-full bg-purple-600 hover:bg-purple-700 text-white py-3 px-4 rounded-lg text-center font-medium transition-colors"
+              >
+                View Achievements
+              </Link>
+            </div>
+          </div>
+
+          {/* Recent Activity */}
+          <div className="bg-gray-800 rounded-lg p-6">
+            <h2 className="text-xl font-semibold mb-4">Recent Activity</h2>
+            <div className="space-y-3">
+              <div className="text-gray-400 text-sm">
+                <p>Welcome to MythSeeker!</p>
+                <p className="mt-2">Start by creating a character or hosting a campaign.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Feature Cards */}
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="bg-gray-800 rounded-lg p-6 hover:bg-gray-700 transition-colors">
+            <div className="text-3xl mb-3">🎭</div>
+            <h3 className="text-lg font-semibold mb-2">Character Creation</h3>
+            <p className="text-gray-300 text-sm">
+              Create and customize your characters with detailed stats and backgrounds.
+            </p>
+          </div>
+
+          <div className="bg-gray-800 rounded-lg p-6 hover:bg-gray-700 transition-colors">
+            <div className="text-3xl mb-3">🏕️</div>
+            <h3 className="text-lg font-semibold mb-2">Campaign Management</h3>
+            <p className="text-gray-300 text-sm">
+              Host and join campaigns with AI-powered storytelling and dynamic worlds.
+            </p>
+          </div>
+
+          <div className="bg-gray-800 rounded-lg p-6 hover:bg-gray-700 transition-colors">
+            <div className="text-3xl mb-3">🎲</div>
+            <h3 className="text-lg font-semibold mb-2">Dice Rolling</h3>
+            <p className="text-gray-300 text-sm">
+              Advanced dice rolling with 3D animations and synchronized results.
+            </p>
+          </div>
+
+          <div className="bg-gray-800 rounded-lg p-6 hover:bg-gray-700 transition-colors">
+            <div className="text-3xl mb-3">🏆</div>
+            <h3 className="text-lg font-semibold mb-2">Achievements</h3>
+            <p className="text-gray-300 text-sm">
+              Earn achievements and track your progress across all game activities.
+            </p>
+          </div>
+        </div>
+      </main>
+
+      {/* Sound Settings Modal */}
+      <SoundSettings
+        isOpen={showSoundSettings}
+        onClose={() => setShowSoundSettings(false)}
+      />
     </div>
   );
-};
-
-export default DashboardPage; 
+}; 

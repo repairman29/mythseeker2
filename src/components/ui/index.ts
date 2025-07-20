@@ -1,6 +1,8 @@
 export { Button } from './Button';
-export { Input } from './Input';
-export { Modal } from './Modal';
-export { Toast } from './Toast';
 export { ErrorBoundary } from './ErrorBoundary';
-export { LoadingSpinner } from './LoadingSpinner'; 
+export { Input } from './Input';
+export { LoadingSpinner } from './LoadingSpinner';
+export { Modal } from './Modal';
+export { SoundSettings } from './SoundSettings';
+export { Toast } from './Toast';
+export { ToastManager, useToast } from './ToastManager'; 

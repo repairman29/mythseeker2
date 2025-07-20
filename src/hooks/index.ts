@@ -1,11 +1,7 @@
-// Authentication & User Management
-export { useAuth } from './useAuth';
-
-// Database Operations
+// Export all hooks
+export { useAuth } from '../context/AuthContext';
 export { useFirebase } from './useFirebase';
-
-// Game Logic & State Management
 export { useGameState } from './useGameState';
-export { useAI } from './useAI';
 export { useDice } from './useDice';
+export { useAI } from './useAI';
 export { usePerformance } from './usePerformance'; 

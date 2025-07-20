@@ -26,14 +26,14 @@ export const Modal: React.FC<ModalProps> = ({
       onClick={closeOnOverlayClick ? onClose : undefined}
     >
       <div 
-        className={`bg-white rounded-lg ${sizeClasses[size]} w-full max-h-[90vh] overflow-y-auto shadow-2xl`}
+        className={`bg-gray-800 rounded-lg ${sizeClasses[size]} w-full max-h-[90vh] overflow-y-auto shadow-2xl`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between items-center p-6 border-b border-gray-200 sticky top-0 bg-white">
-          <h2 className="text-xl font-bold text-gray-900">{title}</h2>
+        <div className="flex justify-between items-center p-6 border-b border-gray-700 sticky top-0 bg-gray-800">
+          <h2 className="text-xl font-bold text-white">{title}</h2>
           <button 
             onClick={onClose} 
-            className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded"
+            className="text-gray-400 hover:text-gray-200 transition-colors p-1 rounded"
           >
             <X className="h-6 w-6" />
           </button>
