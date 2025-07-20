@@ -1,13 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Lock, Dice6, Eye, EyeOff } from 'lucide-react';
-import { Button } from '../ui';
+import { Send, Dice6, Eye, EyeOff, Users, Smile, Mic, Paperclip } from 'lucide-react';
 
 interface MessageInputProps {
   onSendMessage: (content: string, isSecret?: boolean, targetUsers?: string[]) => void;
-  onRollDice: (diceType: string) => void;
+  onRollDice: (diceType: string, modifier?: number) => void;
   disabled?: boolean;
   placeholder?: string;
-  players?: Array<{ id: string; name: string }>;
+  players?: Array<{ id: string; displayName: string }>;
 }
 
 export const MessageInput: React.FC<MessageInputProps> = ({ 
@@ -21,6 +20,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   const [isSecret, setIsSecret] = useState(false);
   const [targetUsers, setTargetUsers] = useState<string[]>([]);
   const [showTargetSelector, setShowTargetSelector] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -32,9 +33,11 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     if (!message.trim() || disabled) return;
 
     // Check for dice roll commands
-    const diceMatch = message.trim().match(/^\/roll\s+(d\d+)/i);
+    const diceMatch = message.trim().match(/^\/roll\s+(d\d+)(?:\s+([+-]?\d+))?/i);
     if (diceMatch) {
-      onRollDice(diceMatch[1].toLowerCase());
+      const diceType = diceMatch[1].toLowerCase();
+      const modifier = diceMatch[2] ? parseInt(diceMatch[2]) : 0;
+      onRollDice(diceType, modifier);
       setMessage('');
       return;
     }
@@ -49,10 +52,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     setIsSecret(false);
     setTargetUsers([]);
     setShowTargetSelector(false);
-  };
-
-  const handleButtonClick = () => {
-    handleSubmit();
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -81,61 +80,138 @@ export const MessageInput: React.FC<MessageInputProps> = ({
   };
 
   const quickActions = [
-    { label: 'Investigate', action: 'I carefully examine my surroundings for clues.' },
-    { label: 'Listen', action: 'I listen carefully for any sounds.' },
-    { label: 'Ready Action', action: 'I prepare to react to what happens next.' },
-    { label: 'Help', action: 'I help an ally with their action.' }
+    { label: 'Investigate', action: 'I carefully examine my surroundings for clues.', icon: '🔍' },
+    { label: 'Listen', action: 'I listen carefully for any sounds.', icon: '👂' },
+    { label: 'Ready Action', action: 'I prepare to react to what happens next.', icon: '⚡' },
+    { label: 'Help', action: 'I help an ally with their action.', icon: '🤝' },
+    { label: 'Stealth', action: 'I move quietly and stay in the shadows.', icon: '👤' },
+    { label: 'Intimidate', action: 'I try to intimidate with my presence.', icon: '😠' }
   ];
+
+  const commonDice = [
+    { label: 'd20', type: 'd20', modifier: 0 },
+    { label: 'd6', type: 'd6', modifier: 0 },
+    { label: 'd100', type: 'd100', modifier: 0 },
+    { label: 'd20+5', type: 'd20', modifier: 5 },
+    { label: 'd20-2', type: 'd20', modifier: -2 }
+  ];
+
+  const emojis = ['😊', '😎', '😱', '😈', '🤔', '💪', '🎯', '⚔️', '🛡️', '🏹', '🔮', '💎', '🔥', '❄️', '⚡', '🌙'];
+
+  const addEmoji = (emoji: string) => {
+    setMessage(prev => prev + emoji);
+    setShowEmojiPicker(false);
+  };
+
+  const startRecording = () => {
+    setIsRecording(true);
+    // TODO: Implement voice recording
+    setTimeout(() => setIsRecording(false), 3000);
+  };
 
   return (
     <div className="bg-gray-800 border-t border-gray-700 p-4">
-      {/* Quick Actions */}
+      {/* Quick Actions Bar */}
       <div className="flex flex-wrap gap-2 mb-3">
         {quickActions.map((action, index) => (
           <button
             key={index}
             onClick={() => setMessage(action.action)}
-            className="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-full transition-colors"
+            className="px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-200 rounded-full transition-colors flex items-center gap-1 btn-hover"
             disabled={disabled}
+            title={action.label}
           >
-            {action.label}
+            <span>{action.icon}</span>
+            <span className="hidden sm:inline">{action.label}</span>
           </button>
         ))}
         
-        <button
-          onClick={() => onRollDice('d20')}
-          className="px-3 py-1 text-xs bg-blue-700 hover:bg-blue-600 text-blue-200 rounded-full transition-colors flex items-center gap-1"
-          disabled={disabled}
-        >
-          <Dice6 className="h-3 w-3" />
-          Roll d20
-        </button>
+        <div className="flex gap-1">
+          {commonDice.map((dice, index) => (
+            <button
+              key={index}
+              onClick={() => onRollDice(dice.type, dice.modifier)}
+              className="px-2 py-1 text-xs bg-blue-700 hover:bg-blue-600 text-blue-200 rounded transition-colors flex items-center gap-1 btn-hover"
+              disabled={disabled}
+              title={`Roll ${dice.label}`}
+            >
+              <Dice6 className="h-3 w-3" />
+              <span className="hidden sm:inline">{dice.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Target User Selector for Secret Messages */}
       {showTargetSelector && (
         <div className="mb-3 p-3 bg-red-900/30 border border-red-700/50 rounded-lg">
-          <p className="text-sm font-medium text-red-200 mb-2">Send secret message to:</p>
+          <div className="flex items-center gap-2 mb-2">
+            <Users className="h-4 w-4 text-red-400" />
+            <span className="text-sm text-red-200">Select recipients for secret message:</span>
+          </div>
           <div className="flex flex-wrap gap-2">
             {players.map(player => (
               <button
                 key={player.id}
                 onClick={() => togglePlayerTarget(player.id)}
-                className={`px-3 py-1 text-xs rounded-full transition-colors ${
+                className={`px-2 py-1 text-xs rounded transition-colors btn-hover ${
                   targetUsers.includes(player.id)
-                    ? 'bg-red-700 text-red-200'
-                    : 'bg-gray-700 border border-red-600/50 text-red-300 hover:bg-red-800/50'
+                    ? 'bg-red-600 text-white'
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                 }`}
               >
-                {player.name}
+                {player.displayName}
               </button>
             ))}
           </div>
         </div>
       )}
 
-      {/* Message Input */}
-      <form onSubmit={handleSubmit} className="flex gap-2">
+      {/* Message Input Area */}
+      <div className="flex items-end gap-2">
+        {/* Action Buttons */}
+        <div className="flex flex-col gap-1">
+          <button
+            onClick={toggleSecretMessage}
+            className={`p-2 rounded transition-colors btn-hover ${
+              isSecret 
+                ? 'bg-red-600 text-white' 
+                : 'bg-gray-700 text-gray-400 hover:bg-gray-600 hover:text-gray-300'
+            }`}
+            title={isSecret ? 'Disable secret message' : 'Send secret message'}
+          >
+            {isSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+          
+          <button
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            className="p-2 bg-gray-700 text-gray-400 hover:bg-gray-600 hover:text-gray-300 rounded transition-colors btn-hover"
+            title="Add emoji"
+          >
+            <Smile className="h-4 w-4" />
+          </button>
+          
+          <button
+            onClick={startRecording}
+            className={`p-2 rounded transition-colors btn-hover ${
+              isRecording 
+                ? 'bg-red-600 text-white animate-pulse' 
+                : 'bg-gray-700 text-gray-400 hover:bg-gray-600 hover:text-gray-300'
+            }`}
+            title="Voice message"
+          >
+            <Mic className="h-4 w-4" />
+          </button>
+          
+          <button
+            className="p-2 bg-gray-700 text-gray-400 hover:bg-gray-600 hover:text-gray-300 rounded transition-colors btn-hover"
+            title="Attach file"
+          >
+            <Paperclip className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Text Input */}
         <div className="flex-1 relative">
           <textarea
             ref={inputRef}
@@ -144,52 +220,54 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             onKeyPress={handleKeyPress}
             placeholder={placeholder}
             disabled={disabled}
+            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-gray-200 placeholder-gray-400 resize-none focus-ring transition-all duration-200"
             rows={1}
-            className={`
-              w-full px-4 py-2 pr-12 border border-gray-600 rounded-lg resize-none
-              bg-gray-700 text-gray-200 placeholder-gray-400
-              focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-              ${isSecret ? 'border-red-500 bg-red-900/20' : ''}
-              ${disabled ? 'bg-gray-800 cursor-not-allowed' : ''}
-            `}
-            style={{ 
-              minHeight: '40px',
-              maxHeight: '120px',
-              height: Math.min(120, Math.max(40, message.split('\n').length * 20 + 20))
-            }}
+            style={{ minHeight: '48px', maxHeight: '120px' }}
           />
           
-          {/* Secret Message Toggle */}
-          <button
-            type="button"
-            onClick={toggleSecretMessage}
-            className={`
-              absolute right-2 top-2 p-1 rounded transition-colors
-              ${isSecret ? 'text-red-400 bg-red-900/50' : 'text-gray-400 hover:text-gray-300'}
-            `}
-            title={isSecret ? 'Cancel secret message' : 'Send secret message'}
-            disabled={disabled}
-          >
-            {isSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
+          {/* Emoji Picker */}
+          {showEmojiPicker && (
+            <div className="absolute bottom-full left-0 mb-2 p-2 bg-gray-700 border border-gray-600 rounded-lg shadow-lg z-10">
+              <div className="grid grid-cols-8 gap-1">
+                {emojis.map((emoji, index) => (
+                  <button
+                    key={index}
+                    onClick={() => addEmoji(emoji)}
+                    className="p-1 hover:bg-gray-600 rounded transition-colors text-lg btn-hover"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
-        <Button
+        {/* Send Button */}
+        <button
+          onClick={handleSubmit}
           disabled={!message.trim() || disabled}
-          icon={isSecret ? <Lock className="h-4 w-4" /> : <Send className="h-4 w-4" />}
-          variant={isSecret ? 'danger' : 'primary'}
-          onClick={handleButtonClick}
+          className="p-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center justify-center btn-hover"
+          title="Send message"
         >
-          {isSecret ? 'Secret' : 'Send'}
-        </Button>
-      </form>
+          <Send className="h-4 w-4" />
+        </button>
+      </div>
 
-      {/* Command Help */}
-      <div className="mt-2 text-xs text-gray-400">
-        <p>
-          Commands: <code className="bg-gray-700 px-1 rounded">/roll d20</code>, <code className="bg-gray-700 px-1 rounded">/roll d6</code>, etc. | 
-          <strong>Shift+Enter</strong> for new line
-        </p>
+      {/* Character Counter and Status */}
+      <div className="flex justify-between items-center mt-2 text-xs text-gray-400">
+        <div className="flex items-center gap-4">
+          <span>{message.length}/1000 characters</span>
+          {isSecret && (
+            <span className="text-red-400 flex items-center gap-1">
+              <EyeOff className="h-3 w-3" />
+              Secret message
+            </span>
+          )}
+        </div>
+        <div className="text-xs text-gray-500">
+          Press Enter to send, Shift+Enter for new line
+        </div>
       </div>
     </div>
   );

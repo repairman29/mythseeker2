@@ -300,6 +300,7 @@ const GamePage: React.FC = () => {
         {/* Game Sidebar */}
         <GameSidebar
           campaignId={campaignId!}
+          campaign={campaign}
           onLocationChange={(location: string) => {
             console.log('Location changed to:', location);
           }}

@@ -563,8 +563,21 @@ export class FirebaseService {
     if (!this.currentUser) throw new Error('User not authenticated');
 
     try {
-      // Add the user to the players subcollection
+      console.log('🔧 joinCampaign: Starting to join campaign:', campaignId);
+      console.log('🔧 joinCampaign: Current user:', this.currentUser.id);
+      
+      // Check if user is already a member
       const playerRef = doc(db, 'campaigns', campaignId, 'players', this.currentUser.id);
+      const playerDoc = await getDoc(playerRef);
+      
+      if (playerDoc.exists()) {
+        console.log('🔧 joinCampaign: User is already a member of this campaign');
+        return; // User is already a member, no need to join again
+      }
+      
+      // Add the user to the players subcollection
+      console.log('🔧 joinCampaign: Adding user to players subcollection...');
+      
       await setDoc(playerRef, {
         userId: this.currentUser.id,
         displayName: this.currentUser.displayName,
@@ -574,14 +587,36 @@ export class FirebaseService {
         isActive: true
       });
 
+      console.log('🔧 joinCampaign: User successfully added to players subcollection');
+
       // Update the campaign's players array
       const campaignRef = doc(db, 'campaigns', campaignId);
+      console.log('🔧 joinCampaign: Updating campaign lastPlayedAt...');
+      
       await updateDoc(campaignRef, {
         lastPlayedAt: serverTimestamp()
       });
+
+      console.log('🔧 joinCampaign: Campaign joined successfully!');
     } catch (error) {
-      console.error('Error joining campaign:', error);
+      console.error('🔧 joinCampaign: Error details:', error);
+      console.error('🔧 joinCampaign: Error code:', (error as any).code);
+      console.error('🔧 joinCampaign: Error message:', (error as any).message);
       throw new Error('Failed to join campaign');
+    }
+  }
+
+  // Helper method to check if user is a campaign member
+  async isCampaignMember(campaignId: string): Promise<boolean> {
+    if (!this.currentUser) return false;
+
+    try {
+      const playerRef = doc(db, 'campaigns', campaignId, 'players', this.currentUser.id);
+      const playerDoc = await getDoc(playerRef);
+      return playerDoc.exists();
+    } catch (error) {
+      console.error('Error checking campaign membership:', error);
+      return false;
     }
   }
 
@@ -590,6 +625,14 @@ export class FirebaseService {
     if (!this.currentUser) throw new Error('User not authenticated');
 
     try {
+      console.log('🔧 sendMessage: Starting message send...');
+      console.log('🔧 sendMessage: Current user:', this.currentUser.id);
+      console.log('🔧 sendMessage: Campaign ID:', messageData.campaignId);
+      
+      // Check if user is a member of the campaign
+      const isMember = await this.isCampaignMember(messageData.campaignId!);
+      console.log('🔧 sendMessage: User is campaign member:', isMember);
+      
       const messagesRef = collection(db, 'messages');
       
       // Ensure all required fields are properly set and no undefined values
@@ -605,19 +648,25 @@ export class FirebaseService {
         metadata: messageData.metadata || {} // Ensure object
       };
 
+      console.log('🔧 sendMessage: Message data prepared:', message);
+
       // Remove any undefined values before sending to Firestore
       const cleanMessage = Object.fromEntries(
         Object.entries(message).filter(([_, value]) => value !== undefined)
       );
 
+      console.log('🔧 sendMessage: Attempting to add document to Firestore...');
       const docRef = await addDoc(messagesRef, {
         ...cleanMessage,
         timestamp: serverTimestamp()
       });
 
+      console.log('🔧 sendMessage: Message sent successfully with ID:', docRef.id);
       return { ...message, id: docRef.id };
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('🔧 sendMessage: Error details:', error);
+      console.error('🔧 sendMessage: Error code:', (error as any).code);
+      console.error('🔧 sendMessage: Error message:', (error as any).message);
       throw new Error('Failed to send message');
     }
   }

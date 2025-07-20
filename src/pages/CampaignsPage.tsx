@@ -97,7 +97,7 @@ const CampaignsPage: React.FC = () => {
       console.log('Successfully joined campaign:', campaignId);
 
       // Small delay to ensure Firestore security rules propagate
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
       // Track achievement progress for joining campaigns
       const newlyUnlocked = AchievementService.getInstance().processEvent(user.id, {
@@ -177,14 +177,7 @@ const CampaignsPage: React.FC = () => {
         const newCampaign = await createCampaign({
           ...campaignData,
           host: user.id,
-          players: [{
-            userId: user.id,
-            characterId: '', // Will be set when character is created
-            role: 'player',
-            joinedAt: new Date(),
-            isActive: true,
-            permissions: ['view', 'chat', 'roll']
-          }],
+          players: [], // Don't pre-populate players array - let joinCampaign handle it
           isPublic: true,
           status: 'active',
           createdAt: new Date(),
